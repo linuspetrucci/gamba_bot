@@ -301,9 +301,7 @@ class Gamba(commands.Cog):
         return max_len
 
     def check_balance(self, member, amount):
-        if self.points[member.id] < amount:
-            return False
-        return True
+        return self.points[member.id] >= amount
 
     def update_balance(self, member, amount):
         self.points[member.id] += amount
