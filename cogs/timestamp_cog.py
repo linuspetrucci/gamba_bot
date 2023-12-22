@@ -5,6 +5,11 @@ import asyncio
 
 from discord.ext import commands
 
+
+async def setup(bot):
+    await bot.add_cog(Timestamp(bot, bot.guild_id))
+
+
 class Timestamp(commands.Cog):
     def __init__(self, bot, guild_id):
         self.bot = bot
