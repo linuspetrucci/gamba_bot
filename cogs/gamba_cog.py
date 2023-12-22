@@ -44,9 +44,9 @@ class Gamba(commands.Cog):
 
     @commands.command(name='top', description='Display the richest bitches', brief='Display the richest bitches')
     async def print_top_scoreboard(self,
-                               ctx,
-                               count: int = commands.parameter(default=3,
-                                                               description='How many people you want to display')):
+                                   ctx,
+                                   count: int = commands.parameter(default=3,
+                                                                   description='How many people you want to display')):
         sorted_points = sorted(self.points.items(), key=lambda x: x[1], reverse=True)
         max_display_name_len = self.get_max_display_name_length()
         top_list = '```'
@@ -61,9 +61,9 @@ class Gamba(commands.Cog):
 
     @commands.command(name='bottom', description='Display most addicted ones', brief='Display most addicted ones')
     async def print_bottom_scoreboard(self,
-                               ctx,
-                               count: int = commands.parameter(default=3,
-                                                               description='How many people you want to display')):
+                                      ctx,
+                                      count: int = commands.parameter(default=3,
+                                                                      description='How many people you want to display')):
         sorted_points = sorted(self.points.items(), key=lambda x: x[1])
         max_display_name_len = self.get_max_display_name_length()
         top_list = '```'
@@ -93,15 +93,31 @@ class Gamba(commands.Cog):
             amount_int = int(amount)
             if amount_int < 1:
                 await ctx.send(f'What are you even trying to do')
+                return
             if not self.check_balance(ctx.author, amount_int):
                 await ctx.send('Not enough points')
                 return
         elif amount == 'all':
             amount_int = self.points[ctx.author.id]
+            if amount_int < 1:
+                await ctx.send(f'{ctx.author.display_name} was trying to all in with'
+                               f' 0 points <:kekw:966948654260838400>')
+                return
         outcome = random.randint(0, 1)
         self.update_balance(ctx.author, amount_int if outcome else -amount_int)
-        await ctx.send(
-            f'{ctx.author.display_name} has {"won" if outcome else "lost"} {amount_int} points in a coinflip and now has {self.points[ctx.author.id]} points')
+        if amount == 'all':
+            if outcome:
+                await ctx.send(f'{ctx.author.display_name} has put all their points on the line and won'
+                               f' <:POGGERS:897872828668457002>! They won the coinflip and doubled their points to'
+                               f' {self.points[ctx.author.id]}')
+            else:
+                await ctx.send(
+                    f'{ctx.author.display_name} has gone all in and lost '
+                    f'{f"every single one of their {amount_int} points" if amount_int > 1 else "their only point"} '
+                    f'<:kekw:966948654260838400>!')
+        else:
+            await ctx.send(f'{ctx.author.display_name} has {"won" if outcome else "lost"}'
+                           f' {amount_int} points in a coinflip and now has {self.points[ctx.author.id]} points')
         await self.delete_message(ctx)
 
     @commands.command(name='gift', aliases=['give', 'donate'], description='Communism', brief='Communism')
@@ -123,7 +139,15 @@ class Gamba(commands.Cog):
             return
         self.update_balance(ctx.author, -amount)
         self.update_balance(target, amount)
-        await ctx.send(f'{ctx.author.display_name} has gifted {amount} points to {target.display_name}')
+        match ctx.invoked_with:
+            case 'gift':
+                await ctx.send(f'{ctx.author.display_name} has gifted {amount} points to {target.display_name}')
+            case 'give':
+                await ctx.send(f'{ctx.author.display_name} gave {amount} points to {target.display_name}')
+            case 'donate':
+                await ctx.send(f'{ctx.author.display_name} was charitable and donated {amount}'
+                               f' points to {target.display_name}')
+
         await self.delete_message(ctx)
 
     @commands.command(name='duel', description='Fight another person to try and steal points',
