@@ -1,0 +1,17 @@
+Member(member_id, total_points, generated_points, opt_in)
+
+Point_change(pc_id, pc_timestamp, amount, member_id)
+
+Coinflip(pc_id, outcome)
+
+Duel(pc_id, initiator, outcome, opponent_id)
+
+Gift(pc_id, initiator, receiver_id)
+
+Bet_set(pc_id, gamba_option_id, gamba_id)
+
+Bet_payout(pc_id, outcome, bet_set_id)
+
+Gamba_option(gamba_option_id, gamba_option_text, gamba_id, option_number)
+
+Gamba(gamba_id, gamba_text, is_open, outcome)
