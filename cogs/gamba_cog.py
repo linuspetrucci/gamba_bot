@@ -31,7 +31,7 @@ class Gamba(commands.Cog):
     def __init__(self, bot, guild_id):
         self.bot = bot
         self.gamba_active = False
-        self.custom_gamba_win_probability = 0 # zero if no custom gamba active
+        self.custom_gamba_win_chance = 0.5 # Default is 0.5 (even if gamba inactive)
         self.gamba_channel_id = 0
         self.gamba_bets = []
         self.gamba_message_id = 0
@@ -211,17 +211,6 @@ class Gamba(commands.Cog):
         self.points[target.id] = amount
         await self.delete_message(ctx)
 
-    @commands.command(name='unbalancedgamba', aliases=['ugamba'],
-                      description='Start a betting round with custom win chances',
-                      brief='Start a betting round with custom win chances')
-    async def start_unbalanced_gamba(self,
-                                     ctx,
-                                     win_chance: convert_chance,
-                                     *,
-                                     description: str = commands.parameter(default=None,
-                                                                           description='Description what the gamba is '
-                                                                                       'about')):
-        pass  # TODO Elia pls
 
     @commands.command(name='gamba', description='Start a betting round', brief='Start a betting round')
     async def start_gamba(self,
@@ -244,7 +233,7 @@ class Gamba(commands.Cog):
         if balances != '```':
             await ctx.send(balances.strip('\n') + '```')
         self.gamba_active = True
-        self.custom_gamba_win_probability = 0
+        self.custom_gamba_win_chance = 0.5
         self.gamba_channel_id = ctx.channel.id
         self.gamba_message_id = gamba_message.id
         await gamba_message.add_reaction('🟢')
@@ -255,33 +244,31 @@ class Gamba(commands.Cog):
 
     
 
-    @commands.command(name='customgamba', aliases=['cgamba'], description='Start a betting round with custom win probability', brief='Start a betting round with win probability')
+    @commands.command(name='customgamba', aliases=['cgamba'], description='Start a betting round with custom win chance', brief='Start a betting round with win chance')
     async def start_custom_gamba(self,
-                          ctx,
-                          *,
-                          description: str = commands.parameter(default=None,
-                                                                description='Description what the gamba is about')):
+                                     ctx,
+                                     win_chance: convert_chance,
+                                     *,
+                                     description: str = commands.parameter(default=None,
+                                                                           description='Description what the gamba is '
+                                                                                       'about')):
         if self.gamba_active:
             gamba_message = await self.get_gamba_message()
             await gamba_message.reply('A gamba is already active, please close it first')
             return
-        if not description or len(description.split()) < 2:
-            await ctx.send('Usage: $customgamba [win probability] [description]')
+        if not description or not win_chance:
+            await ctx.send('Usage: $customgamba [win chance] [description]')
             return
         balances = '```'
-        win_probability = get_win_probability(description.split()[0])
-        if not win_probability:
-            await ctx.send('Usage: $customgamba [win probability] [description]')
-            return
         description = " ".join(description.split()[1:])
         for vc in ctx.guild.voice_channels:
             for m in vc.members:
                 balances += f'{m.display_name} has {self.points[m.id]} points\n'
-        gamba_message = await ctx.send(f'Custom gamba has been started by {ctx.author.display_name}:\n```Win probability: {win_probability}\n{description}```\n')
+        gamba_message = await ctx.send(f'Custom gamba has been started by {ctx.author.display_name}:\n```Win multiplier: {1 / win_chance}, Lose multiplier: {1 / (1 - win_chance)}\n{description}```\n')
         if balances != '```':
             await ctx.send(balances.strip('\n') + '```')
         self.gamba_active = True
-        self.custom_gamba_win_probability = win_probability
+        self.custom_gamba_win_chance = win_chance
         self.gamba_channel_id = ctx.channel.id
         self.gamba_message_id = gamba_message.id
         await gamba_message.add_reaction('🟢')
@@ -317,9 +304,6 @@ class Gamba(commands.Cog):
         self.update_balance(ctx.author, -1 * amount_int)
         self.gamba_bets.append((pred[0], amount_int, ctx.author.id))
         await ctx.send(f'{ctx.author.display_name} has bet {amount_int} on {"win" if pred[0] == "w" else "lose"}')
-        if self.custom_gamba_win_probability != 0:
-            # Print how many points gained if bet is correct
-            await ctx.send(f'{ctx.author.display_name} receives +{amount_int / self.custom_gamba_win_probability if pred[0] == "w" else amount_int / (1 - self.custom_gamba_win_probability)}')
         await self.delete_message(ctx)
 
     @commands.Cog.listener()
@@ -337,17 +321,17 @@ class Gamba(commands.Cog):
         if payload.emoji.name == '🟢':
             print('Win was selected')
             self.gamba_active = False
-            self.custom_gamba_win_probability = 0
+            self.custom_gamba_win_chance = 0.5
             await self.handle_outcome('w')
         if payload.emoji.name == '🔴':
             print('Loss was selected')
             self.gamba_active = False
-            self.custom_gamba_win_probability = 0
+            self.custom_gamba_win_chance = 0.5
             await self.handle_outcome('l')
         if payload.emoji.name == '↩️':
             print('Gamba was canceled')
             self.gamba_active = False
-            self.custom_gamba_win_probability = 0
+            self.custom_gamba_win_chance = 0.5
             await self.handle_cancel()
         gamba_message = await self.get_gamba_message()
         await gamba_message.clear_reactions()
@@ -364,13 +348,10 @@ class Gamba(commands.Cog):
         for pred, amount, mem_id in self.gamba_bets:
             mem = await self.guild.fetch_member(mem_id)
             if pred == outcome:
-                if self.custom_gamba_win_probability == 0:
-                    self.update_balance(mem, amount * 2)
-                else:
-                    if pred[0] == "w":
-                        self.update_balance(mem, amount / self.custom_gamba_win_probability)
-                    else:  
-                        self.update_balance(mem, amount / (1 - self.custom_gamba_win_probability))
+                if pred[0] == "w":
+                    self.update_balance(mem, amount / self.custom_gamba_win_chance)
+                else:  
+                    self.update_balance(mem, amount / (1 - self.custom_gamba_win_chance))
             final_message += (f'{mem.display_name} has {"won" if pred == outcome else "lost"} {amount} points and now '
                               f'has {self.points[mem_id]} points\n')
         self.save_db()
@@ -493,12 +474,5 @@ class Gamba(commands.Cog):
         self.save_db()
         print('Unloaded gamba cog')
 
-    async def get_win_probability(self, num):
-        try:
-            num = float(num)
-            return num if 0 < num < 1 else None
-        except ValueError:
-            num = parse_fraction(num)
-            return num if 0 < num < 1 else None
 
             
