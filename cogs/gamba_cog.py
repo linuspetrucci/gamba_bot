@@ -242,8 +242,6 @@ class Gamba(commands.Cog):
 
         await self.delete_message(ctx)
 
-    
-
     @commands.command(name='customgamba', aliases=['cgamba'], description='Start a betting round with custom win chance', brief='Start a betting round with win chance')
     async def start_custom_gamba(self,
                                      ctx,
@@ -388,7 +386,7 @@ class Gamba(commands.Cog):
         return self.points[member.id] >= amount
 
     def update_balance(self, member: discord.Member, amount: int):
-        self.points[member.id] += amount
+        self.points[member.id] += int(amount)
 
     async def get_gamba_message(self):
         gamba_channel: discord.VoiceChannel = discord.utils.find(lambda c: c.id == self.gamba_channel_id,
