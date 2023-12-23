@@ -2,12 +2,29 @@ import discord
 import random
 import os
 import threading
+import re
 
 from discord.ext import commands
 
 
 async def setup(bot):
     await bot.add_cog(Gamba(bot, bot.guild_id))
+
+
+def convert_chance(chance: str) -> float | None:
+    float_chance = 0
+    try:
+        float_chance = float(chance)
+    except ValueError:
+        if re.compile('[0-9]+/[0-9]+').fullmatch(chance):
+            split_fraction = chance.split('/')
+            float_chance = int(split_fraction[0])/int(split_fraction[1])
+        elif re.compile('[1-9][0-9]%|[1-9]%').fullmatch(chance):
+            print(int(chance.strip('%')))
+            float_chance = int(chance.strip('%'))/100
+    if float_chance >= 1 or float_chance <= 0:
+        return None
+    return float_chance
 
 
 class Gamba(commands.Cog):
@@ -194,6 +211,18 @@ class Gamba(commands.Cog):
         self.points[target.id] = amount
         await self.delete_message(ctx)
 
+    @commands.command(name='unbalancedgamba', aliases=['ugamba'],
+                      description='Start a betting round with custom win chances',
+                      brief='Start a betting round with custom win chances')
+    async def start_unbalanced_gamba(self,
+                                     ctx,
+                                     win_chance: convert_chance,
+                                     *,
+                                     description: str = commands.parameter(default=None,
+                                                                           description='Description what the gamba is '
+                                                                                       'about')):
+        pass  # TODO Elia pls
+
     @commands.command(name='gamba', description='Start a betting round', brief='Start a betting round')
     async def start_gamba(self,
                           ctx,
@@ -326,7 +355,7 @@ class Gamba(commands.Cog):
         self.gamba_message_id = 0
         self.gamba_bets.clear()
 
-    async def handle_outcome(self, outcome):
+    async def handle_outcome(self, outcome: bool):
         gamba_channel = await self.guild.fetch_channel(self.gamba_channel_id)
         final_message = f'Gamba is over. The result is **{"WIN" if outcome == "w" else "LOSS"}**.\n```'
         if not self.gamba_bets:
@@ -375,10 +404,10 @@ class Gamba(commands.Cog):
                 max_len = len(member.display_name)
         return max_len
 
-    def check_balance(self, member, amount):
+    def check_balance(self, member: discord.Member, amount: int):
         return self.points[member.id] >= amount
 
-    def update_balance(self, member, amount):
+    def update_balance(self, member: discord.Member, amount: int):
         self.points[member.id] += amount
 
     async def get_gamba_message(self):
