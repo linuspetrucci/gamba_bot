@@ -285,7 +285,7 @@ class Gamba(commands.Cog):
             await ctx.send('No Gamba is active, start one first with $gamba')
             return
         if not amount or not pred or (not amount.isdigit() and amount != 'all') or not pred[0] in ['w', 'l']:
-            await ctx.send('Usage: $bet [win/loss] [amount]/all')
+            await ctx.send('Usage: $bet [amount]/all [win/loss]')
             return
         amount_int = 0
         if amount.isdigit():
