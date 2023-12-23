@@ -2,12 +2,29 @@ import discord
 import random
 import os
 import threading
+import re
 
 from discord.ext import commands
 
 
 async def setup(bot):
     await bot.add_cog(Gamba(bot, bot.guild_id))
+
+
+def convert_chance(chance: str) -> float | None:
+    float_chance = 0
+    try:
+        float_chance = float(chance)
+    except ValueError:
+        if re.compile('[0-9]+/[0-9]+').fullmatch(chance):
+            split_fraction = chance.split('/')
+            float_chance = int(split_fraction[0])/int(split_fraction[1])
+        elif re.compile('[1-9][0-9]%|[1-9]%').fullmatch(chance):
+            print(int(chance.strip('%')))
+            float_chance = int(chance.strip('%'))/100
+    if float_chance >= 1 or float_chance <= 0:
+        return None
+    return float_chance
 
 
 class Gamba(commands.Cog):
@@ -192,6 +209,18 @@ class Gamba(commands.Cog):
                          amount: int = commands.parameter(description='Nothing to see here')):
         self.points[target.id] = amount
         await self.delete_message(ctx)
+
+    @commands.command(name='unbalancedgamba', aliases=['ugamba'],
+                      description='Start a betting round with custom win chances',
+                      brief='Start a betting round with custom win chances')
+    async def start_unbalanced_gamba(self,
+                                     ctx,
+                                     win_chance: convert_chance,
+                                     *,
+                                     description: str = commands.parameter(default=None,
+                                                                           description='Description what the gamba is '
+                                                                                       'about')):
+        pass  # TODO Elia pls
 
     @commands.command(name='gamba', description='Start a betting round', brief='Start a betting round')
     async def start_gamba(self,
