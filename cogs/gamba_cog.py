@@ -211,7 +211,6 @@ class Gamba(commands.Cog):
         self.points[target.id] = amount
         await self.delete_message(ctx)
 
-
     @commands.command(name='gamba', description='Start a betting round', brief='Start a betting round')
     async def start_gamba(self,
                           ctx,
@@ -346,8 +345,7 @@ class Gamba(commands.Cog):
                     self.update_balance(mem, amount / self.custom_gamba_win_chance)
                 else:  
                     self.update_balance(mem, amount / (1 - self.custom_gamba_win_chance))
-            final_message += (f'{mem.display_name} has {f"won {int(amount / self.custom_gamba_win_chance)}" if pred == outcome else f"lost {amount}"} points and now'
-                              f'has {self.points[mem_id]} points\n')
+            final_message += self.get_gamba_outcome_message(mem, amount, outcome, pred)
         self.save_db()
         self.custom_gamba_win_chance = 0.5
         await gamba_channel.send(final_message + '```')
@@ -461,6 +459,19 @@ class Gamba(commands.Cog):
             if member.id not in self.points:
                 print(f'Member {member.display_name} was not found in db and got added')
                 self.points[member.id] = 0
+
+    def get_gamba_outcome_message(self, member, amount, outcome, pred):
+        win_lose = 'won' if pred == outcome else 'lost'
+        final_amount = 0
+        if outcome != pred:
+            final_amount = amount
+        else:
+            if outcome == 'w':
+                final_amount = int(amount / self.custom_gamba_win_chance)
+            else:
+                final_amount = int(amount / (1 - self.custom_gamba_win_chance))
+        return (f'{member.display_name} has {win_lose} {final_amount} point(s)'
+                f' and now has {self.points[member.id]} points\n')
 
     async def cog_load(self):
         print('Loaded gamba cog')
