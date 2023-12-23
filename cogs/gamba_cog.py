@@ -310,7 +310,7 @@ class Gamba(commands.Cog):
         self.gamba_message_id = 0
         self.gamba_bets.clear()
 
-    async def handle_outcome(self, outcome):
+    async def handle_outcome(self, outcome: bool):
         gamba_channel = await self.guild.fetch_channel(self.gamba_channel_id)
         final_message = f'Gamba is over. The result is **{"WIN" if outcome == "w" else "LOSS"}**.\n```'
         if not self.gamba_bets:
@@ -353,10 +353,10 @@ class Gamba(commands.Cog):
                 max_len = len(member.display_name)
         return max_len
 
-    def check_balance(self, member, amount):
+    def check_balance(self, member: discord.Member, amount: int):
         return self.points[member.id] >= amount
 
-    def update_balance(self, member, amount):
+    def update_balance(self, member: discord.Member, amount: int):
         self.points[member.id] += amount
 
     async def get_gamba_message(self):
