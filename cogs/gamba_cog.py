@@ -260,7 +260,6 @@ class Gamba(commands.Cog):
             await ctx.send('Usage: $customgamba [win chance] [description]')
             return
         balances = '```'
-        description = " ".join(description.split()[1:])
         for vc in ctx.guild.voice_channels:
             for m in vc.members:
                 balances += f'{m.display_name} has {self.points[m.id]} points\n'
