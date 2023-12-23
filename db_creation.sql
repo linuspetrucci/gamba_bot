@@ -1,5 +1,5 @@
 CREATE TABLE Member(
-    member_id INTEGER PRIMARY KEY,
+    member_id BIGINT PRIMARY KEY,
     total_points INTEGER CHECK(total_points >= 0),
     generated_points INTEGER CHECK(generated_points >= 0),
     opt_in BOOLEAN);
@@ -21,7 +21,7 @@ CREATE TABLE Point_change(
 	pc_id INTEGER PRIMARY KEY AUTO_INCREMENT,
     pc_timestamp DATETIME,
     amount INTEGER,
-    member_id INTEGER,
+    member_id BIGINT,
     CONSTRAINT pc_reference FOREIGN KEY(member_id) REFERENCES Member(member_id));
     
 CREATE TABLE Coinflip(
@@ -33,7 +33,7 @@ CREATE TABLE Duel(
 	pc_id INTEGER PRIMARY KEY,
     initiator BOOLEAN,
     outcome BOOLEAN,
-    opponent_id INTEGER,
+    opponent_id BIGINT,
     CONSTRAINT duel_reference_pc FOREIGN KEY(pc_id) REFERENCES Point_change(pc_id),
     CONSTRAINT duel_reference_opponent FOREIGN KEY (opponent_id) REFERENCES Member(member_id));
 
@@ -41,7 +41,7 @@ CREATE TABLE Gift(
 	pc_id INTEGER PRIMARY KEY,
     initiator BOOLEAN,
     outcome BOOLEAN,
-    receiver_id INTEGER,
+    receiver_id BIGINT,
     CONSTRAINT gift_reference_pc FOREIGN KEY(pc_id) REFERENCES Point_change(pc_id),
     CONSTRAINT gift_reference_opp FOREIGN KEY(receiver_id) REFERENCES Member(member_id));
     
@@ -50,7 +50,7 @@ CREATE TABLE Bet_set(
     gamba_option_id INTEGER,
     gamba_id INTEGER,
     CONSTRAINT bs_reference_pc FOREIGN KEY(pc_id) REFERENCES Point_change(pc_id),
-    CONSTRAINT bs_reference_goption FOREIGN KEY(gamba_option_id) REFERENCES Gamba_option(gamba_option_id),
+    CONSTRAINT bs_reference_gamba_option FOREIGN KEY(gamba_option_id) REFERENCES Gamba_option(gamba_option_id),
     CONSTRAINT bs_reference_gamba FOREIGN KEY(gamba_id) REFERENCES Gamba(gamba_id));
     
 CREATE TABLE Bet_payout(
@@ -58,10 +58,10 @@ CREATE TABLE Bet_payout(
     outcome BOOLEAN,
     bet_set_id INTEGER,
     CONSTRAINT bp_reference_pc FOREIGN KEY(pc_id) REFERENCES Point_change(pc_id),
-    CONSTRAINT bp_reference_bsid FOREIGN KEY(bet_set_id) REFERENCES Bet_set(pc_id));
+    CONSTRAINT bp_reference_bet_set_id FOREIGN KEY(bet_set_id) REFERENCES Bet_set(pc_id));
 
 CREATE TRIGGER pc_updater AFTER INSERT ON Point_change FOR EACH ROW
 	UPDATE Member SET total_points = total_points + NEW.amount WHERE Member.member_id = NEW.member_id;
     
-CREATE TRIGGER generator_updater AFTER UPDATE ON Member FOR EACH ROW
-	UPDATE Member SET total_points = total_points + NEW.generated_points - OLD.generated_points;
+CREATE TRIGGER generator_updater BEFORE UPDATE ON Member FOR EACH ROW
+	SET NEW.total_points = NEW.total_points + NEW.generated_points - OLD.generated_points;
