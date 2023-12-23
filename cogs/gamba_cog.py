@@ -318,17 +318,14 @@ class Gamba(commands.Cog):
         if payload.emoji.name == '🟢':
             print('Win was selected')
             self.gamba_active = False
-            self.custom_gamba_win_chance = 0.5
             await self.handle_outcome('w')
         if payload.emoji.name == '🔴':
             print('Loss was selected')
             self.gamba_active = False
-            self.custom_gamba_win_chance = 0.5
             await self.handle_outcome('l')
         if payload.emoji.name == '↩️':
             print('Gamba was canceled')
             self.gamba_active = False
-            self.custom_gamba_win_chance = 0.5
             await self.handle_cancel()
         gamba_message = await self.get_gamba_message()
         await gamba_message.clear_reactions()
@@ -336,7 +333,7 @@ class Gamba(commands.Cog):
         self.gamba_message_id = 0
         self.gamba_bets.clear()
 
-    async def handle_outcome(self, outcome: bool):
+    async def handle_outcome(self, outcome):
         gamba_channel = await self.guild.fetch_channel(self.gamba_channel_id)
         final_message = f'Gamba is over. The result is **{"WIN" if outcome == "w" else "LOSS"}**.\n```'
         if not self.gamba_bets:
@@ -349,9 +346,10 @@ class Gamba(commands.Cog):
                     self.update_balance(mem, amount / self.custom_gamba_win_chance)
                 else:  
                     self.update_balance(mem, amount / (1 - self.custom_gamba_win_chance))
-            final_message += (f'{mem.display_name} has {"won" if pred == outcome else "lost"} {amount} points and now '
+            final_message += (f'{mem.display_name} has {f"won {int(amount / self.custom_gamba_win_chance)}" if pred == outcome else f"lost {amount}"} points and now'
                               f'has {self.points[mem_id]} points\n')
         self.save_db()
+        self.custom_gamba_win_chance = 0.5
         await gamba_channel.send(final_message + '```')
 
     async def handle_cancel(self):
