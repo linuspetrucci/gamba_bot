@@ -97,6 +97,7 @@ class Gamba(commands.Cog):
         await ctx.send(top_list)
         await self.delete_message(ctx)
 
+
     @commands.command(name='coinflip', aliases=['flip', 'cf'], description='Double or nothing',
                       brief='Double or nothing')
     async def perform_coinflip(self,
@@ -137,6 +138,80 @@ class Gamba(commands.Cog):
             await ctx.send(f'{ctx.author.display_name} has {"won" if outcome else "lost"}'
                            f' {amount_int} points in a coinflip and now has {self.points[ctx.author.id]} points')
         await self.delete_message(ctx)
+
+
+    @commands.command(name='diceroll', aliases=['dice', 'dr'], description='Bet on dice',
+                      brief='Bet on dice')
+    async def perform_diceroll(self,
+                               ctx,
+                               amount: str = commands.parameter(default=None,
+                                                                description='The amount of points you want to lose'),
+                               *,
+                               numbers: str = commands.parameter(default=None,
+                                                                description='Numbers on which bet is placed')):
+        if not amount or (not amount.isdigit() and amount != 'all'):
+            await ctx.send('Usage: $diceroll [points]/all [number(s)]')
+            return
+        amount_int = 0
+        bet_numbers = []
+        if amount.isdigit():
+            amount_int = int(amount)
+            if amount_int < 1:
+                await ctx.send(f'What are you even trying to do')
+                return
+            if not self.check_balance(ctx.author, amount_int):
+                await ctx.send('Not enough points')
+                return
+        elif amount == 'all':
+            amount_int = self.points[ctx.author.id]
+            if amount_int < 1:
+                await ctx.send(f'{ctx.author.display_name} was trying to all in with'
+                               f' 0 points <:kekw:966948654260838400>')
+                return
+        # Read numbers until there is no digit or space. Thus, numbers can be entered with or without spaces.
+        for digit in numbers:
+            # Read over space
+            if digit == ' ':
+                continue
+            # Break if not a digit (nor space)
+            if not digit.isdigit():
+                break
+            digit = int(digit)
+            # Append if number is between 1 and 6 and unique
+            if 0 < digit <= 6 and digit not in bet_numbers:
+                bet_numbers.append(digit)
+            else:
+                # Maybe handle if number is out of range / occurs multiple times
+                pass
+
+        # Print usage if no valid number was entered
+        if len(bet_numbers) < 1:
+            await ctx.send('Usage: $diceroll [points]/all [number(s)]')
+            return
+        if len(bet_numbers) >= 6:
+            await ctx.send(f'{ctx.author.display_name} has bet on all possible numbers <:kekw:966948654260838400>')
+            return
+        # String representation of bet numbers
+        bet_numbers_string = ', '.join(map(str, bet_numbers))
+        dice_number = random.randint(1, 6)
+        outcome = 1 if dice_number in bet_numbers else 0
+        self.update_balance(ctx.author, 6 * amount_int / len(bet_numbers) if outcome else -amount_int)
+        await ctx.send(f'')
+        if amount == 'all':
+            if outcome:
+                await ctx.send(f'{ctx.author.display_name} has put all their points on {bet_numbers_string}. '
+                               f' The result was \033[1m{dice_number}\033[0m!\nThey won and raised their points to'
+                               f' {self.points[ctx.author.id]}')
+            else:
+                await ctx.send(
+                    f'{ctx.author.display_name} has gone all in on {bet_numbers_string}. '
+                    f' The result was \033[1m{dice_number}\033[0m!\n They lost {f"every single one of their {amount_int} points" if amount_int > 1 else "their only point"} '
+                    f'<:kekw:966948654260838400>!')
+        else:
+            await ctx.send(f'{ctx.author.display_name} has put {amount_int} points on {bet_numbers_string}. The result was \033[1m{dice_number}\033[0m!\n'
+                           f'They {f"won {6 * amount_int / len(bet_numbers)}" if outcome else f"lost {amount_int}"} points and now have {self.points[ctx.author.id]} points')
+        await self.delete_message(ctx)
+
 
     @commands.command(name='gift', aliases=['give', 'donate'], description='Communism', brief='Communism')
     async def gift_points(self,
