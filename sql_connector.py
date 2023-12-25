@@ -23,6 +23,10 @@ class SQLConnector:
         cursor.execute(query, values)
         return cursor.fetchone()[0]
 
+    def set_member_points(self, member_id: int, new_points: int):
+        # TODO add SQL entity for set
+        pass
+
     def get_all_member_ids(self) -> list[int]:
         query = '''SELECT member_id FROM Member'''
         cursor = self.connection.cursor()

@@ -29,24 +29,12 @@ def convert_chance(chance: str) -> float | None:
 class Gamba(commands.Cog):
     def __init__(self, bot, guild_id):
         self.bot = bot
-        self.gamba_active = False
-        self.custom_gamba_win_chance = 0.5 # Default is 0.5 (even if gamba inactive)
-        self.gamba_channel_id = 0
-        self.gamba_bets = []
-        self.gamba_message_id = 0
-        self.points = {}
-        self.bot_ids = [510789298321096704, 614109280508968980, 967826697007300741]
         self.guild = discord.utils.find(lambda g: g.id == guild_id, self.bot.guilds)
         self.check_members_in_db()
         self.points_generator()
 
     def cog_check(self, ctx):
         return ctx.message.guild.id == self.guild.id
-
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
-        print(f'Member {member.display_name} joined')
-        self.points[member.id] = 0
 
     @commands.command(name='activate', description='Join the gamba cult', brief='Join the gamba cult')
     async def opt_in(self, ctx):
@@ -229,7 +217,7 @@ class Gamba(commands.Cog):
         balances = '```'
         for vc in ctx.guild.voice_channels:
             for m in vc.members:
-                balances += f'{m.display_name} has {self.points[m.id]} points\n'
+                balances += f'{m.display_name} has {self.get_points(m.id)} points\n'
         gamba_message = await ctx.send(f'Gamba #{gamba_id} has been started by'
                                        f' {ctx.author.display_name}:\n```{description}```\n')
         if balances != '```':
@@ -336,7 +324,6 @@ class Gamba(commands.Cog):
             await self.handle_cancel(gamba_id, gamba_channel)
         gamba_message = await gamba_channel.fetch_message(payload.message_id)
         await gamba_message.clear_reactions()
-        self.gamba_bets.clear()
 
     async def handle_outcome(self, outcome, gamba_id, gamba_channel):
         final_message = f'Gamba is over. The result is **{"WIN" if outcome == "w" else "LOSS"}**.\n```'
