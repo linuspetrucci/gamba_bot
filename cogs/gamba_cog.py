@@ -191,7 +191,7 @@ class Gamba(commands.Cog):
         else:
             await ctx.send(f'{ctx.author.display_name} has put {amount_int} points on {bet_numbers_string}. The '
                            f'result was **{dice_number}**!\nThey '
-                           f'{f"won {int(6 * amount_int / len(bet_numbers))}" if outcome else f"lost {amount_int}"}'
+                           f'{f"won {int((6 - len(bet_numbers)) / len(bet_numbers) * amount_int)}" if outcome else f"lost {amount_int}"}'
                            f' points and now have {self.points[ctx.author.id]} points')
         await self.delete_message(ctx)
 
