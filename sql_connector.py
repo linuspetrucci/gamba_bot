@@ -16,41 +16,93 @@ class SQLConnector:
         cursor.execute(sql, values)
         self.connection.commit()
 
+    def get_member_points(self, member_id: int) -> int:
+        query = '''SELECT total_points FROM Member WHERE member_id = %s'''
+        values = (member_id,)
+        cursor = self.connection.cursor()
+        cursor.execute(query, values)
+        return cursor.fetchone()[0]
+
+    def get_all_member_ids(self) -> list[int]:
+        query = '''SELECT member_id FROM Member'''
+        cursor = self.connection.cursor()
+        cursor.execute(query)
+        return [member_id for (member_id,) in cursor.fetchall()]
+
     def opt_in(self, member_id: int):
-        sql = '''UPDATE Member SET opt_in = 1 WHERE member_id = %s'''
+        sql = '''UPDATE Member SET opt_in = TRUE WHERE member_id = %s'''
         values = (member_id,)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
         self.connection.commit()
 
-    def update_generator(self, member_id: int, amount: int):
-        query = '''SELECT generated_points FROM Member WHERE member_id = %s'''
+    def get_opt_in(self, member_id: int) -> bool:
+        query = '''SELECT opt_in FROM Member WHERE member_id = %s'''
+        values = (member_id,)
+        cursor = self.connection.cursor()
+        cursor.execute(query, values)
+        return bool(cursor.fetchone()[0])
+
+    def get_opt_in_members_sorted(self) -> list[(int, int, int)]:
+        query = '''SELECT member_id, total_points, generated_points 
+        FROM Member WHERE opt_in = TRUE ORDER BY total_points DESC'''
         cursor = self.connection.cursor()
         cursor.execute(query)
-        row = cursor.fetchall()
-        generated_points = row[0][0]
-        sql = '''UPDATE Member SET generated_points = %s WHERE member_id = %s'''
-        cursor.execute(sql, (generated_points + amount, member_id))
+        return cursor.fetchall()
+
+    def update_generator(self, member_id: int, amount: int):
+        cursor = self.connection.cursor()
+        sql = '''UPDATE Member SET generated_points = generated_points + %s WHERE member_id = %s'''
+        values = (amount, member_id)
+        cursor.execute(sql, values)
         self.connection.commit()
 
-    def add_gamba(self, text: str):
-        sql = '''INSERT INTO Gamba (gamba_text, is_open, outcome) VALUES (%s, TRUE, NULL)'''
+    def add_gamba(self, text: str) -> int:
+        sql = '''INSERT INTO Gamba (gamba_text, is_open, outcome, gamba_message_id) VALUES (%s, TRUE, NULL, 0)'''
         values = (text,)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
         self.connection.commit()
         return cursor.lastrowid
 
-    def add_gamba_option(self, text: str, gamba_id: int, option_number: int):
-        sql = '''INSERT INTO Gamba_option(gamba_option_text, gamba_id, option_number) VALUES (%s, %s, %s)'''
-        values = (text, gamba_id, option_number)
+    def set_gamba_message_id(self, gamba_id: int, message_id: int):
+        sql = '''UPDATE Gamba SET gamba_message_id = %s WHERE gamba_id = %s'''
+        values = (message_id, gamba_id)
+        cursor = self.connection.cursor()
+        cursor.execute(sql, values)
+        self.connection.commit()
+
+    def close_gamba(self, gamba_id: int, outcome: bool):
+        sql = '''UPDATE Gamba SET outcome = %s, is_open = FALSE WHERE gamba_id = %s'''
+        values = (outcome, gamba_id)
+        cursor = self.connection.cursor()
+        cursor.execute(sql, values)
+        self.connection.commit()
+
+    def get_gamba_from_message_id(self, gamba_message_id: int):
+        query = '''SELECT gamba_id, is_open FROM Gamba WHERE gamba_message_id = %s'''
+        values = (gamba_message_id,)
+        cursor = self.connection.cursor()
+        cursor.execute(query, values)
+        return cursor.fetchone()
+
+    def get_active_gamba_ids(self):
+        query = '''SELECT gamba_id FROM Gamba WHERE is_open = TRUE'''
+        cursor = self.connection.cursor()
+        cursor.execute(query)
+        return [gamba_id for (gamba_id,) in cursor.fetchall()]
+
+    def add_gamba_option(self, text: str, gamba_id: int, option_number: int, payout_factor: float):
+        sql = '''INSERT INTO Gamba_option(gamba_option_text, gamba_id, option_number, payout_factor) 
+        VALUES (%s, %s, %s, %s)'''
+        values = (text, gamba_id, option_number, payout_factor)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
         self.connection.commit()
 
     def add_coinflip(self, member_id: int, amount: int, outcome: bool):
         sql = '''INSERT INTO Point_change(pc_timestamp, amount, member_id) VALUES (NOW(), %s, %s)'''
-        values = (amount, member_id)
+        values = (amount if outcome else -amount, member_id)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
         sql = '''INSERT INTO Coinflip(pc_id, outcome) VALUES (%s, %s)'''
@@ -97,19 +149,21 @@ class SQLConnector:
         cursor.execute(sql, values)
         self.connection.commit()
 
-    def payout_bet(self, member_id: int, outcome: bool, gamba_id: int):
-        query = '''SELECT Bet_set.pc_id, Point_change.amount FROM (Bet_set INNER JOIN Point_change ON Bet_set.pc_id = Point_change.pc_id)
-        WHERE member_id = %s AND gamba_id = %s'''
-        values = (member_id, gamba_id)
+    def get_bets_from_gamba_id(self, gamba_id: int) -> list[(int, int, int, int, float)]:
+        query = '''SELECT bet_set.pc_id, point_change.amount, point_change.member_id, gamba_option.option_number,
+         gamba_option.payout_factor FROM ((Bet_set INNER JOIN Point_change ON Bet_set.pc_id = Point_change.pc_id) INNER
+         JOIN gamba_option ON bet_set.gamba_option_id = gamba_option.gamba_option_id) WHERE bet_set.gamba_id = %s'''
+        values = (gamba_id,)
         cursor = self.connection.cursor()
         cursor.execute(query, values)
-        rows = cursor.fetchall()
-        bet_set_id = rows[0][0]
-        amount = rows[0][1]
+        return cursor.fetchall()
+
+    def payout_bet(self, member_id: int, outcome: bool, bet_set_id: int, amount: int):
+        cursor = self.connection.cursor()
         sql = '''INSERT INTO Point_change(pc_timestamp, amount, member_id) VALUES (NOW(), %s, %s)'''
-        values = (amount, member_id)
+        values = (amount if outcome else 0, member_id)
         cursor.execute(sql, values)
-        sql = '''INSERT INTO Bet_payout(pc_id, outcome, bet_set_id) VALUES (%s)'''
+        sql = '''INSERT INTO Bet_payout(pc_id, outcome, bet_set_id) VALUES (%s, %s, %s)'''
         values = (cursor.lastrowid, outcome, bet_set_id)
         cursor.execute(sql, values)
         self.connection.commit()

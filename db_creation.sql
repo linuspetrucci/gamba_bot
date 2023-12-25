@@ -8,13 +8,15 @@ CREATE TABLE Gamba(
 	gamba_id INTEGER PRIMARY KEY AUTO_INCREMENT,
     gamba_text VARCHAR(250),
     is_open BOOLEAN,
-    outcome BOOLEAN);
+    outcome BOOLEAN,
+    gamba_message_id BIGINT);
     
 CREATE TABLE Gamba_option(
 	gamba_option_id INTEGER PRIMARY KEY AUTO_INCREMENT,
     gamba_option_text VARCHAR(250),
     gamba_id INTEGER,
     option_number INTEGER,
+    payout_factor FLOAT CHECK(0 < payout_factor < 1),
     CONSTRAINT gamba_option_reference FOREIGN KEY(gamba_id) REFERENCES GAMBA(gamba_id));
     
 CREATE TABLE Point_change(
