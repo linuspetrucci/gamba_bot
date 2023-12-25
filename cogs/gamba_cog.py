@@ -176,7 +176,7 @@ class Gamba(commands.Cog):
         bet_numbers_string = ', '.join(map(str, sorted(bet_numbers)))
         dice_number = random.randint(1, 6)
         outcome = 1 if dice_number in bet_numbers else 0
-        self.update_balance(ctx.author, 6 * amount_int / len(bet_numbers) if outcome else -amount_int)
+        self.update_balance(ctx.author, (6 - len(bet_numbers)) / len(bet_numbers) * amount_int if outcome else -amount_int)
         if amount == 'all':
             if outcome:
                 await ctx.send(f'{ctx.author.display_name} has put all their points on {bet_numbers_string}. '
