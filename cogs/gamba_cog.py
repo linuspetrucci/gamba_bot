@@ -35,7 +35,7 @@ class Gamba(commands.Cog):
 
     def cog_check(self, ctx):
         if ctx.message.guild.id == self.guild.id:
-            return False
+            return True
         if ctx.invoked_with == 'activate':
             return True
         if not self.bot.sql_connector.get_opt_in(ctx.author.id):
