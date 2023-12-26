@@ -353,7 +353,7 @@ class Gamba(commands.Cog):
     async def handle_cancel(self, gamba_id, gamba_channel):
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         for bet_set_id, amount, member_id, _, _ in gamba_bets:
-            self.bot.sql_connector.payout_bet(member_id, True, bet_set_id, amount)
+            self.bot.sql_connector.payout_bet(member_id, True, bet_set_id, -amount)
         await gamba_channel.send('Gamba has been canceled and points have been refunded')
 
     def points_generator(self):
