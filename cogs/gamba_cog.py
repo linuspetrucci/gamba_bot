@@ -224,8 +224,8 @@ class Gamba(commands.Cog):
         if balances != '```':
             await ctx.send(balances.strip('\n') + '```')
         self.bot.sql_connector.set_gamba_message_id(gamba_id, gamba_message.id)
-        self.bot.sql_connector.add_gamba_option('win', gamba_id, 0, 0.5)
-        self.bot.sql_connector.add_gamba_option('loss', gamba_id, 1, 0.5)
+        self.bot.sql_connector.add_gamba_option('win', gamba_id, 0, 2)
+        self.bot.sql_connector.add_gamba_option('loss', gamba_id, 1, 2)
         await gamba_message.add_reaction('🟢')
         await gamba_message.add_reaction('🔴')
         await gamba_message.add_reaction('↩️')
