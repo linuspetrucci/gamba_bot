@@ -2,6 +2,7 @@ import os
 import discord
 
 from discord.ext import commands
+from sql_connector import SQLConnector
 
 
 # abzug wenn z spoot
@@ -14,6 +15,7 @@ class Bot(commands.Bot):
     def __init__(self):
         self.guild_id = 757953133337903114  # informatik
         # self.guild_id = 502948363394613261  # test
+        self.sql_connector = SQLConnector()
         intents = discord.Intents.default()
         intents.message_content = True
         intents.members = True
