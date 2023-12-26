@@ -16,7 +16,7 @@ CREATE TABLE Gamba_option(
     gamba_option_text VARCHAR(250),
     gamba_id INTEGER,
     option_number INTEGER,
-    payout_factor FLOAT CHECK(0 < payout_factor AND payout_factor < 1),
+    payout_factor FLOAT CHECK(0 < payout_factor),
     CONSTRAINT gamba_option_reference FOREIGN KEY(gamba_id) REFERENCES Gamba(gamba_id));
     
 CREATE TABLE Point_change(
