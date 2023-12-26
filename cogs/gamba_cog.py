@@ -34,10 +34,18 @@ class Gamba(commands.Cog):
         self.points_generator()
 
     def cog_check(self, ctx):
-        return ctx.message.guild.id == self.guild.id
+        if ctx.message.guild.id == self.guild.id:
+            return False
+        if ctx.invoked_with == 'activate':
+            return True
+        if not self.bot.sql_connector.get_opt_in(ctx.author.id):
+            ctx.send(f'You have not yet registered to use the bot, please use $activate')
+            return False
 
     @commands.command(name='activate', description='Join the gamba cult', brief='Join the gamba cult')
     async def opt_in(self, ctx):
+        if self.bot.sql_connector.get_opt_in(ctx.author.id):
+            ctx.send('You are already part of the gamba cult')
         self.bot.sql_connector.opt_in(ctx.author.id)
         await ctx.send(f'{ctx.author.display_name} joined the gamba cult')
         await self.delete_message(ctx)
@@ -50,10 +58,7 @@ class Gamba(commands.Cog):
                                                                                 description='Name of the person whose p'
                                                                                             'oints you want to check',
                                                                                 displayed_default='You')):
-        if not self.bot.sql_connector.get_opt_in(target.id):
-            await ctx.send(f'{target.display_name} is has not yet oped in to using the bot')
-        else:
-            await ctx.send(f'{target.display_name} has {self.bot.sql_connector.get_member_points(target.id)} points')
+        await ctx.send(f'{target.display_name} has {self.get_points(target.id)} points')
         await self.delete_message(ctx)
 
     @commands.command(name='top', description='Display the richest bitches', brief='Display the richest bitches')
@@ -299,7 +304,7 @@ class Gamba(commands.Cog):
                 return
         if amount == 'all':
             print('all in')
-            amount_int = self.bot.sql_connector.get_member_points(ctx.author.id)
+            amount_int = self.get_points(ctx.author.id)
             print('fetched all points')
         if amount_int < 1:
             await ctx.send(f'Cmon Bruh, can\'t bet with 0 points...')
@@ -369,7 +374,7 @@ class Gamba(commands.Cog):
                     generated_points += 2
             if generated_points > 0:
                 self.bot.sql_connector.update_generator(member.id, generated_points)
-        threading.Timer(20, self.points_generator).start()
+        threading.Timer(300, self.points_generator).start()
 
     def get_max_display_name_length(self):
         max_len = 0
@@ -379,7 +384,7 @@ class Gamba(commands.Cog):
         return max_len
 
     def check_balance(self, member: discord.Member, amount: int):
-        return self.bot.sql_connector.get_member_points(member.id) >= amount
+        return self.get_points(member.id) >= amount
 
     def get_points(self, member_id):
         return self.bot.sql_connector.get_member_points(member_id)
@@ -427,7 +432,7 @@ class Gamba(commands.Cog):
     def get_gamba_outcome_message(self, member, amount, win):
         win_lose = 'won' if win else 'lost'
         return (f'{member.display_name} has {win_lose} {amount} point(s)'
-                f' and now has {self.bot.sql_connector.get_member_points(member.id)} points\n')
+                f' and now has {self.get_points(member.id)} points\n')
 
     async def cog_load(self):
         print('Loaded gamba cog')
