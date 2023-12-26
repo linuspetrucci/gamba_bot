@@ -45,6 +45,7 @@ class Gamba(commands.Cog):
             print('not opt in')
             await ctx.send(f'You have not yet registered to use the bot, please use $activate')
             return False
+        return True
 
     @commands.command(name='activate', description='Join the gamba cult', brief='Join the gamba cult')
     async def opt_in(self, ctx):
