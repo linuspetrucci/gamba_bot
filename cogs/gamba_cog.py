@@ -33,7 +33,7 @@ class Gamba(commands.Cog):
         self.check_members_in_db()
         self.points_generator()
 
-    def cog_check(self, ctx):
+    async def cog_check(self, ctx):
         print('checking')
         if ctx.message.guild.id != self.guild.id:
             print('wrong guild')
@@ -43,7 +43,7 @@ class Gamba(commands.Cog):
             return True
         if not self.bot.sql_connector.get_opt_in(ctx.author.id):
             print('not opt in')
-            ctx.send(f'You have not yet registered to use the bot, please use $activate')
+            await ctx.send(f'You have not yet registered to use the bot, please use $activate')
             return False
 
     @commands.command(name='activate', description='Join the gamba cult', brief='Join the gamba cult')
