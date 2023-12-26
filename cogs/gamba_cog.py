@@ -298,10 +298,14 @@ class Gamba(commands.Cog):
                 await ctx.send(f'You don\'t have enough points')
                 return
         if amount == 'all':
+            print('all in')
             amount_int = self.bot.sql_connector.get_member_points(ctx.author.id)
+            print('fetched all points')
         if amount_int < 1:
             await ctx.send(f'Cmon Bruh, can\'t bet with 0 points...')
+        print('calling set_bet')
         self.bot.sql_connector.set_bet(ctx.author.id, amount_int, gamba_id, 0 if pred[0] == 'w' else 1)
+        print('set_bet done')
         await ctx.send(f'{ctx.author.display_name} has bet {amount_int} on {"win" if pred[0] == "w" else "lose"}')
         await self.delete_message(ctx)
 
@@ -364,7 +368,7 @@ class Gamba(commands.Cog):
                     generated_points += 2
             if generated_points > 0:
                 self.bot.sql_connector.update_generator(member.id, generated_points)
-        threading.Timer(300, self.points_generator).start()
+        threading.Timer(20, self.points_generator).start()
 
     def get_max_display_name_length(self):
         max_len = 0

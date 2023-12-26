@@ -147,7 +147,10 @@ class SQLConnector:
         Gamba_option.option_number = %s'''
         values = (gamba_id, option_number)
         cursor.execute(query, values)
-        gamba_option_id = cursor.fetchone()[0]
+        gamba_option_id_raw = cursor.fetchone()
+        print(f'gamba_option_id_raw is {gamba_option_id_raw}')
+        gamba_option_id = gamba_option_id_raw[0]
+        print(f'gamba_option_id is {gamba_option_id}')
         sql = '''INSERT INTO Bet_set(pc_id, gamba_option_id, gamba_id) VALUES (%s, %s, %s)'''
         values = (cursor.lastrowid, gamba_option_id, gamba_id)
         cursor.execute(sql, values)
