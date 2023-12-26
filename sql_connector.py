@@ -149,20 +149,16 @@ class SQLConnector:
         values = (gamba_id, option_number)
         cursor.execute(query, values)
         gamba_option_id_raw = cursor.fetchone()
-        print(f'gamba_option_id_raw is {gamba_option_id_raw}')
         gamba_option_id = gamba_option_id_raw[0]
-        print(f'gamba_option_id is {gamba_option_id}')
         sql = '''INSERT INTO Bet_set(pc_id, gamba_option_id, gamba_id) VALUES (%s, %s, %s)'''
-        print(f'pc_id is {pc_id}')
-        print(f'gamba_id is {gamba_id}')
         values = (pc_id, gamba_option_id, gamba_id)
         cursor.execute(sql, values)
         self.connection.commit()
 
     def get_bets_from_gamba_id(self, gamba_id: int) -> list[(int, int, int, int, float)]:
-        query = '''SELECT bet_set.pc_id, point_change.amount, point_change.member_id, gamba_option.option_number,
-         gamba_option.payout_factor FROM ((Bet_set INNER JOIN Point_change ON Bet_set.pc_id = Point_change.pc_id) INNER
-         JOIN gamba_option ON bet_set.gamba_option_id = gamba_option.gamba_option_id) WHERE bet_set.gamba_id = %s'''
+        query = '''SELECT Bet_set.pc_id, Point_change.amount, Point_change.member_id, Gamba_option.option_number,
+         Gamba_option.payout_factor FROM ((Bet_set INNER JOIN Point_change ON Bet_set.pc_id = Point_change.pc_id) INNER
+         JOIN Gamba_option ON Bet_set.gamba_option_id = Gamba_option.gamba_option_id) WHERE Bet_set.gamba_id = %s'''
         values = (gamba_id,)
         cursor = self.connection.cursor()
         cursor.execute(query, values)
