@@ -45,7 +45,8 @@ class Gamba(commands.Cog):
     @commands.command(name='activate', description='Join the gamba cult', brief='Join the gamba cult')
     async def opt_in(self, ctx):
         if self.bot.sql_connector.get_opt_in(ctx.author.id):
-            ctx.send('You are already part of the gamba cult')
+            await ctx.send('You are already part of the gamba cult')
+            return
         self.bot.sql_connector.opt_in(ctx.author.id)
         await ctx.send(f'{ctx.author.display_name} joined the gamba cult')
         await self.delete_message(ctx)
