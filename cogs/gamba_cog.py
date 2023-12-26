@@ -34,11 +34,15 @@ class Gamba(commands.Cog):
         self.points_generator()
 
     def cog_check(self, ctx):
+        print('checking')
         if ctx.message.guild.id == self.guild.id:
+            print('wrong guild')
             return True
         if ctx.invoked_with == 'activate':
+            print('activate')
             return True
         if not self.bot.sql_connector.get_opt_in(ctx.author.id):
+            print('not opt in')
             ctx.send(f'You have not yet registered to use the bot, please use $activate')
             return False
 
@@ -106,29 +110,22 @@ class Gamba(commands.Cog):
             await ctx.send('Usage: $coinflip [points]/all')
             return
         amount_int = 0
-        print('1')
         if amount.isdigit():
-            print('digit')
             amount_int = int(amount)
             if amount_int < 1:
-                print('<1')
                 await ctx.send(f'What are you even trying to do')
                 return
             if not self.check_balance(ctx.author, amount_int):
-                print('no points')
                 await ctx.send('Not enough points')
                 return
         elif amount == 'all':
-            print('all')
             amount_int = self.get_points(ctx.author.id)
-            print('2')
             if amount_int < 1:
                 await ctx.send(f'{ctx.author.display_name} was trying to all in with'
                                f' 0 points <:kekw:966948654260838400>')
                 return
         outcome = random.randint(0, 1)
         self.bot.sql_connector.add_coinflip(ctx.author.id, amount_int, outcome)
-        print('3')
         if amount == 'all':
             if outcome:
                 await ctx.send(f'{ctx.author.display_name} has put all their points on the line and won the coinflip'
@@ -285,12 +282,10 @@ class Gamba(commands.Cog):
             await ctx.send('Usage: $bet [amount]/all [win/loss]')
             return
         active_gamba_ids = self.bot.sql_connector.get_active_gamba_ids()
-        print(f'activa gamba ids are: {active_gamba_ids}')
         if not active_gamba_ids:
             await ctx.send('No gambas are currently active')
             return
         if len(active_gamba_ids) == 1:
-            print(f'Only 1 gamba active: {active_gamba_ids[0]}')
             gamba_id = active_gamba_ids[0]
         elif not gamba_nr:
             await ctx.send(f'Multiple gambas active, please specify on which gamba you want to bet')
@@ -304,14 +299,10 @@ class Gamba(commands.Cog):
                 await ctx.send(f'You don\'t have enough points')
                 return
         if amount == 'all':
-            print('all in')
             amount_int = self.get_points(ctx.author.id)
-            print('fetched all points')
         if amount_int < 1:
             await ctx.send(f'Cmon Bruh, can\'t bet with 0 points...')
-        print('calling set_bet')
         self.bot.sql_connector.set_bet(ctx.author.id, amount_int, gamba_id, 0 if pred[0] == 'w' else 1)
-        print('set_bet done')
         await ctx.send(f'{ctx.author.display_name} has bet {amount_int} on {"win" if pred[0] == "w" else "lose"}')
         await self.delete_message(ctx)
 
