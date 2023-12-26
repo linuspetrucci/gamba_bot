@@ -342,6 +342,7 @@ class Gamba(commands.Cog):
             await gamba_channel.send(final_message + 'No bets were placed```')
             return
         for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
+            amount = -amount
             member = await self.guild.fetch_member(member_id)
             # Very bad code, if win (outcome == True) and option nummer = 0, or loss and option number = 1, then trigger
             # Basically checks if you bet correctly (the option_number != outcome part)
