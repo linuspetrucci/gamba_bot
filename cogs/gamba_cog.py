@@ -325,18 +325,18 @@ class Gamba(commands.Cog):
         gamba_channel = discord.utils.find(lambda c: c.id == payload.channel_id, self.guild.text_channels)
         if payload.emoji.name == '🟢':
             self.bot.sql_connector.close_gamba(gamba_id, True)
-            await self.handle_outcome('w', gamba_id, gamba_channel)
+            await self.handle_outcome(True, gamba_id, gamba_channel)
         if payload.emoji.name == '🔴':
             self.bot.sql_connector.close_gamba(gamba_id, False)
-            await self.handle_outcome('l', gamba_id, gamba_channel)
+            await self.handle_outcome(False, gamba_id, gamba_channel)
         if payload.emoji.name == '↩️':
             self.bot.sql_connector.close_gamba(gamba_id, None)
             await self.handle_cancel(gamba_id, gamba_channel)
         gamba_message = await gamba_channel.fetch_message(payload.message_id)
         await gamba_message.clear_reactions()
 
-    async def handle_outcome(self, outcome, gamba_id, gamba_channel):
-        final_message = f'Gamba is over. The result is **{"WIN" if outcome == "w" else "LOSS"}**.\n```'
+    async def handle_outcome(self, win, gamba_id, gamba_channel):
+        final_message = f'Gamba is over. The result is **{"WIN" if win else "LOSS"}**.\n```'
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
             await gamba_channel.send(final_message + 'No bets were placed```')
@@ -346,8 +346,8 @@ class Gamba(commands.Cog):
             member = await self.guild.fetch_member(member_id)
             # Very bad code, if win (outcome == True) and option nummer = 0, or loss and option number = 1, then trigger
             # Basically checks if you bet correctly (the option_number != outcome part)
-            self.bot.sql_connector.payout_bet(member_id, option_number != outcome, bet_set_id, amount * payout_factor)
-            final_message += self.get_gamba_outcome_message(member, amount, option_number != outcome)
+            self.bot.sql_connector.payout_bet(member_id, option_number != win, bet_set_id, amount * payout_factor)
+            final_message += self.get_gamba_outcome_message(member, amount, option_number != win)
         await gamba_channel.send(final_message + '```')
 
     async def handle_cancel(self, gamba_id, gamba_channel):
