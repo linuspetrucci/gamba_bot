@@ -215,6 +215,7 @@ class Gamba(commands.Cog):
             return
         gamba_id = self.bot.sql_connector.add_gamba(description)
         balances = '```'
+        # TODO show only opt-in balances
         for vc in ctx.guild.voice_channels:
             for m in vc.members:
                 balances += f'{m.display_name} has {self.get_points(m.id)} points\n'
@@ -278,23 +279,28 @@ class Gamba(commands.Cog):
             await ctx.send('Usage: $bet [amount]/all [win/loss]')
             return
         active_gamba_ids = self.bot.sql_connector.get_active_gamba_ids()
+        print(f'activa gamba ids are: {active_gamba_ids}')
         if not active_gamba_ids:
             await ctx.send('No gambas are currently active')
             return
         if len(active_gamba_ids) == 1:
+            print(f'Only 1 gamba active: {active_gamba_ids[0]}')
             gamba_id = active_gamba_ids[0]
+        elif not gamba_nr:
+            await ctx.send(f'Multiple gambas active, please specify on which gamba you want to bet')
+            return
         else:
             gamba_id = gamba_nr
         amount_int = 0
         if amount.isdigit():
             amount_int = int(amount)
-            if amount_int < 1:
-                await ctx.send(f'Cmon Bruh')
             if not self.check_balance(ctx.author, amount_int):
                 await ctx.send(f'You don\'t have enough points')
                 return
         if amount == 'all':
             amount_int = self.bot.sql_connector.get_member_points(ctx.author.id)
+        if amount_int < 1:
+            await ctx.send(f'Cmon Bruh, can\'t bet with 0 points...')
         self.bot.sql_connector.set_bet(ctx.author.id, amount_int, gamba_id, 0 if pred[0] == 'w' else 1)
         await ctx.send(f'{ctx.author.display_name} has bet {amount_int} on {"win" if pred[0] == "w" else "lose"}')
         await self.delete_message(ctx)
