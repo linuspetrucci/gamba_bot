@@ -143,6 +143,7 @@ class SQLConnector:
         values = (-amount, member_id)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
+        pc_id = cursor.lastrowid
         query = '''SELECT gamba_option_id FROM Gamba_option WHERE Gamba_option.gamba_id = %s AND 
         Gamba_option.option_number = %s'''
         values = (gamba_id, option_number)
@@ -152,7 +153,6 @@ class SQLConnector:
         gamba_option_id = gamba_option_id_raw[0]
         print(f'gamba_option_id is {gamba_option_id}')
         sql = '''INSERT INTO Bet_set(pc_id, gamba_option_id, gamba_id) VALUES (%s, %s, %s)'''
-        pc_id = cursor.lastrowid
         print(f'pc_id is {pc_id}')
         print(f'gamba_id is {gamba_id}')
         values = (pc_id, gamba_option_id, gamba_id)
