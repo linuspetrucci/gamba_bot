@@ -35,9 +35,9 @@ class Gamba(commands.Cog):
 
     def cog_check(self, ctx):
         print('checking')
-        if ctx.message.guild.id == self.guild.id:
+        if ctx.message.guild.id != self.guild.id:
             print('wrong guild')
-            return True
+            return False
         if ctx.invoked_with == 'activate':
             print('activate')
             return True
