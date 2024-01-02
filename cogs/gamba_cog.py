@@ -274,7 +274,7 @@ class Gamba(commands.Cog):
                           interaction: discord.Interaction,
                           description: str):
         gamba_id = self.bot.sql_connector.add_gamba(description)
-        gamba_view = discord.ui.View()
+        gamba_view = discord.ui.View(timeout=None)
         win_button = GambaButton('Win', discord.ButtonStyle.green, f'gamba_win_{gamba_id}', self.handle_gamba_win)
         lose_button = GambaButton('Lose', discord.ButtonStyle.red, f'gamba_lose_{gamba_id}', self.handle_gamba_loss)
         cancel_button = GambaButton('Cancel', discord.ButtonStyle.grey, f'gamba_cancel_{gamba_id}', self.handle_cancel)
