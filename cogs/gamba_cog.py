@@ -386,6 +386,7 @@ class Gamba(commands.Cog):
             member = await self.guild.fetch_member(member_id)
             self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
             final_message += self.get_gamba_outcome_message(member, amount, not option_number)
+        self.bot.sql_connector.close_gamba(gamba_id, 1)
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
 
@@ -402,6 +403,7 @@ class Gamba(commands.Cog):
             member = await self.guild.fetch_member(member_id)
             self.bot.sql_connector.payout_bet(member_id, option_number, bet_set_id, amount * payout_factor)
             final_message += self.get_gamba_outcome_message(member, amount, option_number)
+        self.bot.sql_connector.close_gamba(gamba_id, 0)
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
 
@@ -410,6 +412,7 @@ class Gamba(commands.Cog):
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         for bet_set_id, amount, member_id, _, _ in gamba_bets:
             self.bot.sql_connector.payout_bet(member_id, None, bet_set_id, -amount)
+        self.bot.sql_connector.close_gamba(gamba_id, None)
         await interaction.channel.send('Gamba has been canceled and points have been refunded')
         await interaction.message.edit(view=None)
 
