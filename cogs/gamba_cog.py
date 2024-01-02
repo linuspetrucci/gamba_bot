@@ -379,9 +379,7 @@ class Gamba(commands.Cog):
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
             await interaction.channel.send(final_message + 'No bets were placed```')
-            await interaction.message.edit(
-                content=self.bot.sql_connector.get_gamba_description_from_gamba_id(gamba_id),
-                view=None)
+            await interaction.message.edit(view=None)
             return
         for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
             amount = -amount
@@ -389,9 +387,7 @@ class Gamba(commands.Cog):
             self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
             final_message += self.get_gamba_outcome_message(member, amount, not option_number)
         await interaction.channel.send(final_message + '```')
-        await interaction.message.edit(
-            content=self.bot.sql_connector.get_gamba_description_from_gamba_id(gamba_id),
-            view=None)
+        await interaction.message.edit(view=None)
 
     async def handle_gamba_loss(self, interaction: discord.Interaction):
         final_message = f'Gamba is over. The result is **LOSS**.\n```'
@@ -399,9 +395,7 @@ class Gamba(commands.Cog):
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
             await interaction.channel.send(final_message + 'No bets were placed```')
-            await interaction.message.edit(
-                content=self.bot.sql_connector.get_gamba_description_from_gamba_id(gamba_id),
-                view=None)
+            await interaction.message.edit(view=None)
             return
         for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
             amount = -amount
@@ -409,9 +403,7 @@ class Gamba(commands.Cog):
             self.bot.sql_connector.payout_bet(member_id, option_number, bet_set_id, amount * payout_factor)
             final_message += self.get_gamba_outcome_message(member, amount, option_number)
         await interaction.channel.send(final_message + '```')
-        await interaction.message.edit(
-            content=self.bot.sql_connector.get_gamba_description_from_gamba_id(gamba_id),
-            view=None)
+        await interaction.message.edit(view=None)
 
     async def handle_cancel(self, interaction: discord.Interaction):
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
@@ -419,9 +411,7 @@ class Gamba(commands.Cog):
         for bet_set_id, amount, member_id, _, _ in gamba_bets:
             self.bot.sql_connector.payout_bet(member_id, None, bet_set_id, -amount)
         await interaction.channel.send('Gamba has been canceled and points have been refunded')
-        await interaction.message.edit(
-            content=self.bot.sql_connector.get_gamba_description_from_gamba_id(gamba_id),
-            view=None)
+        await interaction.message.edit(view=None)
 
     def points_generator(self):
         print(f'Generator updated at {time.asctime(time.localtime())}')
