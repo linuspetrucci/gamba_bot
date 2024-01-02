@@ -16,7 +16,7 @@ class Reminder(commands.Cog):
             await message.channel.send('$ is deprecated, new commands are called with /')
 
     async def cog_load(self):
-        print('Loaded utility cog')
+        print('Loaded reminder cog')
 
     async def cog_unload(self):
-        print('Unloaded utility cog')
+        print('Unloaded reminder cog')
