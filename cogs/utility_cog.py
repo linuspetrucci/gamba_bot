@@ -16,7 +16,7 @@ class Utility(commands.Cog):
     async def reload_cogs(self, interaction: discord.Interaction):
         await interaction.response.defer()
         await self.bot.reload_cogs()
-        await interaction.followup.send(content="reload and syncing done")
+        await interaction.followup.send(content="reload and syncing done", ephemeral=True)
 
     async def cog_load(self):
         print('Loaded utility cog')
