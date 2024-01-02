@@ -6,7 +6,6 @@ from sql_connector import SQLConnector
 
 
 # abzug wenn z spoot
-# d6 / d100 / d custom
 # roulette
 # duell mit aneh
 # bet win amount + bet amount win

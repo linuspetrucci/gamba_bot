@@ -104,7 +104,7 @@ class Gamba(commands.Cog):
                                ctx,
                                amount: str = commands.parameter(default=None,
                                                                 description='The amount of points you want to lose')):
-        if not amount or (not amount.isdigit() and amount != 'all'):
+        if not amount or (not amount.isdigit() and amount.lower() != 'all'):
             await ctx.send('Usage: $coinflip [points]/all')
             return
         amount_int = 0
@@ -149,7 +149,7 @@ class Gamba(commands.Cog):
                                numbers: str = commands.parameter(default=None,
                                                                  description='Numbers on which bet is placed')):
         digit_test = re.compile('( *[1-6]+ *)+')
-        if not amount or (not amount.isdigit() and amount != 'all') or not digit_test.fullmatch(numbers):
+        if not amount or (not amount.isdigit() and amount.lower() != 'all') or not digit_test.fullmatch(numbers):
             await ctx.send('Usage: $diceroll [points]/all [number(s)]')
             return
         amount_int = 0
@@ -161,8 +161,8 @@ class Gamba(commands.Cog):
             if not self.check_balance(ctx.author, amount_int):
                 await ctx.send('Not enough points')
                 return
-        elif amount == 'all':
-            amount_int = self.points[ctx.author.id]
+        elif amount.lower() == 'all':
+            amount_int = self.get_points(ctx.author.id)
             if amount_int < 1:
                 await ctx.send(f'{ctx.author.display_name} was trying to all in with'
                                f' 0 points <:kekw:966948654260838400>')
@@ -177,12 +177,14 @@ class Gamba(commands.Cog):
         bet_numbers_string = ', '.join(map(str, sorted(bet_numbers)))
         dice_number = random.randint(1, 6)
         outcome = 1 if dice_number in bet_numbers else 0
-        self.update_balance(ctx.author, (6 - len(bet_numbers)) / len(bet_numbers) * amount_int if outcome else -amount_int)
-        if amount == 'all':
+        win_amount = int((6 - len(bet_numbers)) / len(bet_numbers) * amount_int)
+        self.bot.sql_connector.add_diceroll(ctx.author.id, win_amount if outcome else -amount_int,
+                                            outcome, dice_number, ''.join(map(str, sorted(bet_numbers))))
+        if amount.lower() == 'all':
             if outcome:
                 await ctx.send(f'{ctx.author.display_name} has put all their points on {bet_numbers_string}. '
                                f' The result was **{dice_number}**!\nThey won and raised their points to'
-                               f' {self.points[ctx.author.id]}')
+                               f' {self.get_points(ctx.author.id)}')
             else:
                 await ctx.send(
                     f'{ctx.author.display_name} has gone all in on {bet_numbers_string}. '
@@ -192,8 +194,8 @@ class Gamba(commands.Cog):
         else:
             await ctx.send(f'{ctx.author.display_name} has put {amount_int} points on {bet_numbers_string}. The '
                            f'result was **{dice_number}**!\nThey '
-                           f'{f"won {int((6 - len(bet_numbers)) / len(bet_numbers) * amount_int)}" if outcome else f"lost {amount_int}"}'
-                           f' points and now have {self.points[ctx.author.id]} points')
+                           f'{f"won {win_amount}" if outcome else f"lost {amount_int}"}'
+                           f' points and now have {self.get_points(ctx.author.id)} points')
         await self.delete_message(ctx)
 
     @commands.command(name='gift', aliases=['give', 'donate'], description='Communism', brief='Communism')
@@ -246,7 +248,7 @@ class Gamba(commands.Cog):
         outcome = random.randint(0, 1) == 1
         if outcome:
             await ctx.send(
-                f'{ctx.author.display_name} took {enemy.display_name} by suprise and stole {amount} points as a bounty')
+                f'{ctx.author.display_name} took {enemy.display_name} by surprise and stole {amount} points as a bounty')
         else:
             await ctx.send(
                 f'{enemy.display_name} was prepared for the attack and stole {amount}'
@@ -333,7 +335,8 @@ class Gamba(commands.Cog):
                         gamba_nr: int = commands.parameter(default=None,
                                                            description='Specify the gamba number in case of multiple'
                                                                        ' gambas simultaneously')):
-        if not amount or not pred or (not amount.isdigit() and amount != 'all') or not pred[0] in ['w', 'l']:
+        if (not amount or not pred or (not amount.isdigit() and amount.lower != 'all')
+                or not pred[0].lower() in ['w', 'l']):
             await ctx.send('Usage: $bet [amount]/all [win/loss]')
             return
         active_gamba_ids = self.bot.sql_connector.get_active_gamba_ids()
@@ -353,12 +356,12 @@ class Gamba(commands.Cog):
             if not self.check_balance(ctx.author, amount_int):
                 await ctx.send(f'You don\'t have enough points')
                 return
-        if amount == 'all':
+        if amount.lower == 'all':
             amount_int = self.get_points(ctx.author.id)
         if amount_int < 1:
             await ctx.send(f'Cmon Bruh, can\'t bet with 0 points...')
-        self.bot.sql_connector.set_bet(ctx.author.id, amount_int, gamba_id, 0 if pred[0] == 'w' else 1)
-        await ctx.send(f'{ctx.author.display_name} has bet {amount_int} on {"win" if pred[0] == "w" else "lose"}')
+        self.bot.sql_connector.set_bet(ctx.author.id, amount_int, gamba_id, 0 if pred[0].lower == 'w' else 1)
+        await ctx.send(f'{ctx.author.display_name} has bet {amount_int} on {"win" if pred[0].lower == "w" else "lose"}')
         await self.delete_message(ctx)
 
     @commands.Cog.listener()

@@ -174,6 +174,16 @@ class SQLConnector:
         cursor.execute(sql, values)
         self.connection.commit()
 
+    def add_diceroll(self, member_id: int, amount: int, outcome: bool, rolled_value: int, predicted_numbers: str):
+        sql = '''INSERT INTO Point_change(pc_timestamp, amount, member_id) VALUES (NOW(), %s, %s)'''
+        values = (amount, member_id)
+        cursor = self.connection.cursor()
+        cursor.execute(sql, values)
+        sql = '''INSERT INTO Diceroll(pc_id, outcome, rolled_value, predicted_numbers) VALUES (%s, %s, %s, %s)'''
+        values = (cursor.lastrowid, outcome, rolled_value, predicted_numbers)
+        cursor.execute(sql, values)
+        self.connection.commit()
+
     def get_connection(self):
         try:
             connection = mysql.connector.connect(**self.CONFIG)
