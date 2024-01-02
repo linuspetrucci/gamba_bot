@@ -280,6 +280,7 @@ class Gamba(commands.Cog):
         cancel_button = GambaButton('Cancel', discord.ButtonStyle.grey, f'gamba_cancel_{gamba_id}', self.handle_cancel)
         gamba_view.add_item(win_button)
         gamba_view.add_item(lose_button)
+        gamba_view.add_item(cancel_button)
         balances = '```'
         for vc in interaction.guild.voice_channels:
             for m in vc.members:
@@ -367,9 +368,9 @@ class Gamba(commands.Cog):
         if amount_int < 1:
             await interaction.response.send_message(f'Cmon Bruh, can\'t bet with 0 points...',
                                                     ephemeral=True)
-        self.bot.sql_connector.set_bet(user.id, amount_int, gamba_id, 0 if pred[0].lower == 'w' else 1)
+        self.bot.sql_connector.set_bet(user.id, amount_int, gamba_id, 0 if pred == 'w' else 1)
         await interaction.response.send_message(f'{user.display_name} has bet {amount_int} on '
-                                                f'{"win" if pred[0].lower == "w" else "lose"}',
+                                                f'{"win" if pred == "w" else "lose"}',
                                                 ephemeral=False)
 
     async def handle_gamba_win(self, interaction: discord.Interaction):
@@ -388,8 +389,9 @@ class Gamba(commands.Cog):
             self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
             final_message += self.get_gamba_outcome_message(member, amount, not option_number)
         await interaction.channel.send(final_message + '```')
-        await interaction.edit_original_response(
-            content=self.bot.sql_connector.get_gamba_description_from_gamba_id(gamba_id))
+        await interaction.message.edit(
+            content=self.bot.sql_connector.get_gamba_description_from_gamba_id(gamba_id),
+            view=None)
 
     async def handle_gamba_loss(self, interaction: discord.Interaction):
         final_message = f'Gamba is over. The result is **LOSS**.\n```'
