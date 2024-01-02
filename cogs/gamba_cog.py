@@ -363,11 +363,12 @@ class Gamba(commands.Cog):
                 await interaction.response.send_message(f'You don\'t have enough points',
                                                         ephemeral=True)
                 return
-        if amount.lower == 'all':
+        if amount.lower() == 'all':
             amount_int = self.get_points(user.id)
         if amount_int < 1:
             await interaction.response.send_message(f'Cmon Bruh, can\'t bet with 0 points...',
                                                     ephemeral=True)
+            return
         self.bot.sql_connector.set_bet(user.id, amount_int, gamba_id, 0 if pred == 'w' else 1)
         await interaction.response.send_message(f'{user.display_name} has bet {amount_int} on '
                                                 f'{"win" if pred == "w" else "lose"}',
