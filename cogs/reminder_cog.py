@@ -13,7 +13,7 @@ class Reminder(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.content.startswith('$'):
-            await message.channel.send('$ is deprecated, new commands are called with /')
+            await message.channel.send('commands with $ are deprecated, new commands are called with /')
 
     async def cog_load(self):
         print('Loaded reminder cog')
