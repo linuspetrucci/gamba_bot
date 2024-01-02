@@ -278,7 +278,6 @@ class Gamba(commands.Cog):
         pog = discord.utils.get(interaction.guild.emojis, name='POGGERS')
         kekw = discord.utils.get(interaction.guild.emojis, name='kekw')
         weird = discord.utils.get(interaction.guild.emojis, name='WeirdChamp')
-        print(pog, kekw, weird)
         win_button = GambaButton(pog, discord.ButtonStyle.green, f'gamba_win_{gamba_id}', self.handle_gamba_win)
         lose_button = GambaButton(kekw, discord.ButtonStyle.red, f'gamba_lose_{gamba_id}', self.handle_gamba_loss)
         cancel_button = GambaButton(weird, discord.ButtonStyle.grey, f'gamba_cancel_{gamba_id}', self.handle_cancel)
