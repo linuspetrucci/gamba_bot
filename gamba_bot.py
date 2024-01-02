@@ -12,8 +12,8 @@ from sql_connector import SQLConnector
 # lotterie
 class Bot(commands.Bot):
     def __init__(self):
-        self.guild_id = 757953133337903114  # informatik
-        # self.guild_id = 502948363394613261  # test
+        # self.guild_id = 757953133337903114  # informatik
+        self.guild_id = 502948363394613261  # test
         self.sql_connector = SQLConnector()
         intents = discord.Intents.default()
         intents.message_content = True
@@ -33,11 +33,22 @@ class Bot(commands.Bot):
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 await self.load_extension(f'cogs.{filename[:-3]}')
+        self.tree.copy_global_to(guild=discord.Object(id=self.guild_id))
+        await self.tree.sync(guild=discord.Object(id=self.guild_id))
 
     async def reload_cogs(self):
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 await self.reload_extension(f'cogs.{filename[:-3]}')
+        self.tree.copy_global_to(guild=discord.Object(id=self.guild_id))
+        await self.tree.sync(guild=discord.Object(id=self.guild_id))
+
+    @commands.command('sync')
+    @commands.is_owner()
+    @commands.guild_only()
+    async def fallback_sync(self, ctx: commands.Context):
+        self.tree.copy_global_to(guild=discord.Object(id=self.guild_id))
+        await self.tree.sync(guild=discord.Object(id=self.guild_id))
 
 
 bot = Bot()

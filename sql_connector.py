@@ -76,19 +76,26 @@ class SQLConnector:
         cursor.execute(sql, values)
         self.connection.commit()
 
+    def get_gamba_id_from_message_id(self, message_id: int) -> int:
+        query = '''SELECT gamba_id FROM Gamba WHERE gamba_message_id = %s'''
+        values = (message_id,)
+        cursor = self.connection.cursor()
+        cursor.execute(query, values)
+        return cursor.fetchone()[0]
+
+    def get_gamba_description_from_gamba_id(self, gamba_id: int) -> str:
+        query = '''SELECT gamba_text FROM Gamba WHERE gamba_id = %s'''
+        values = (gamba_id,)
+        cursor = self.connection.cursor()
+        cursor.execute(query, values)
+        return cursor.fetchone()[0]
+
     def close_gamba(self, gamba_id: int, outcome: bool):
         sql = '''UPDATE Gamba SET outcome = %s, is_open = FALSE WHERE gamba_id = %s'''
         values = (outcome, gamba_id)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
         self.connection.commit()
-
-    def get_gamba_from_message_id(self, gamba_message_id: int):
-        query = '''SELECT gamba_id, is_open FROM Gamba WHERE gamba_message_id = %s'''
-        values = (gamba_message_id,)
-        cursor = self.connection.cursor()
-        cursor.execute(query, values)
-        return cursor.fetchone()
 
     def get_active_gamba_ids(self):
         query = '''SELECT gamba_id FROM Gamba WHERE is_open = TRUE'''

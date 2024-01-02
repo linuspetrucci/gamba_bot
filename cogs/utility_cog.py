@@ -1,4 +1,5 @@
 from discord.ext import commands
+import discord
 
 
 async def setup(bot):
@@ -9,10 +10,13 @@ class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='reload')
+    @discord.app_commands.command(name='reload')
     @commands.is_owner()
-    async def reload_cogs(self, ctx):
+    @commands.guild_only()
+    async def reload_cogs(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         await self.bot.reload_cogs()
+        await interaction.followup.send(content="reload and syncing done")
 
     async def cog_load(self):
         print('Loaded utility cog')
