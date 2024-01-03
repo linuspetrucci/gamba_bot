@@ -7,13 +7,14 @@ async def setup(bot):
 
 
 class Reminder(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.content.startswith('$'):
             await message.channel.send('commands with $ are deprecated, new commands are called with /')
+        await self.bot.process_commands(message)
 
     async def cog_load(self):
         print('Loaded reminder cog')
