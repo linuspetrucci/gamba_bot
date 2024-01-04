@@ -288,7 +288,12 @@ class Gamba(commands.Cog):
     async def start_gamba(self,
                           interaction: discord.Interaction,
                           description: str,
-                          win_chance: convert_chance = 0.5):
+                          win_chance: str = '0.5'):
+        win_chance = convert_chance(win_chance)
+        if not win_chance:
+            await interaction.response.send_message(f'Win chance has to be between 0 and 1 and in the format '
+                                                    f'0.5, 50% or 1/2',
+                                                    ephemeral=True)
         gamba_id = self.bot.sql_connector.add_gamba(description)
         gamba_view = discord.ui.View(timeout=None)
         pog = discord.utils.get(interaction.guild.emojis, name='POGGERS')
