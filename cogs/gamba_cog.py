@@ -287,7 +287,8 @@ class Gamba(commands.Cog):
     @app_commands.guild_only()
     async def start_gamba(self,
                           interaction: discord.Interaction,
-                          description: str):
+                          description: str,
+                          win_chance: convert_chance = 0.5):
         gamba_id = self.bot.sql_connector.add_gamba(description)
         gamba_view = discord.ui.View(timeout=None)
         pog = discord.utils.get(interaction.guild.emojis, name='POGGERS')
@@ -305,49 +306,19 @@ class Gamba(commands.Cog):
                 if self.bot.sql_connector.get_opt_in(m.id):
                     balances += f'{m.display_name} has {self.get_points(m.id)} points\n'
         await interaction.response.send_message(content=f'```Gamba #{gamba_id} has been started by '
-                                                        f'{interaction.user.display_name}:\n```'
+                                                        f'{interaction.user.display_name}\n'
+                                                        f'Win multiplier: {1 / win_chance}, '
+                                                        f'Lose multiplier: {1 / (1 - win_chance)}:\n```'
                                                         f'{description}',
                                                 view=gamba_view,
                                                 ephemeral=False)
         if balances != '```':
-            await interaction.channel.send(balances.strip('\n') + '```', delete_after=60)
+            await interaction.channel.send(balances.strip('\n') + '```', delete_after=180)
         original = await interaction.original_response()
         original_message = await original.fetch()
         self.bot.sql_connector.set_gamba_message_id(gamba_id, original_message.id)
-        self.bot.sql_connector.add_gamba_option('win', gamba_id, 0, 2)
-        self.bot.sql_connector.add_gamba_option('loss', gamba_id, 1, 2)
-
-    # @commands.command(name='customgamba', aliases=['cgamba'], description='Start a betting round with custom win chance', brief='Start a betting round with win chance')
-    # async def start_custom_gamba(self,
-    #                                  ctx,
-    #                                  win_chance: convert_chance,
-    #                                  *,
-    #                                  description: str = commands.parameter(default=None,
-    #                                                                        description='Description what the gamba is '
-    #                                                                                    'about')):
-    #     if self.gamba_active:
-    #         gamba_message = await self.get_gamba_message()
-    #         await gamba_message.reply('A gamba is already active, please close it first')
-    #         return
-    #     if not description or not win_chance:
-    #         await ctx.send('Usage: $customgamba [win chance] [description]')
-    #         return
-    #     balances = '```'
-    #     for vc in ctx.guild.voice_channels:
-    #         for m in vc.members:
-    #             balances += f'{m.display_name} has {self.points[m.id]} points\n'
-    #     gamba_message = await ctx.send(f'Custom gamba has been started by {ctx.author.display_name}:\n```Win multiplier: {1 / win_chance}, Lose multiplier: {1 / (1 - win_chance)}\n{description}```\n')
-    #     if balances != '```':
-    #         await ctx.send(balances.strip('\n') + '```')
-    #     self.gamba_active = True
-    #     self.custom_gamba_win_chance = win_chance
-    #     self.gamba_channel_id = ctx.channel.id
-    #     self.gamba_message_id = gamba_message.id
-    #     await gamba_message.add_reaction('🟢')
-    #     await gamba_message.add_reaction('🔴')
-    #     await gamba_message.add_reaction('↩️')
-    #
-    #     await self.delete_message(ctx)
+        self.bot.sql_connector.add_gamba_option('win', gamba_id, 0, (1 / win_chance))
+        self.bot.sql_connector.add_gamba_option('loss', gamba_id, 1, (1 / (1 - win_chance)))
 
     @app_commands.command(name='bet', description='Place your bet for the ongoing gamba')
     @app_commands.describe(amount='The amount of points you want to bet')
