@@ -5,37 +5,27 @@ import re
 import time
 
 from discord.ext import commands
+from discord import app_commands
+from typing import Literal
+from utility_functions import convert_chance
+from gamba_button import GambaButton
 
 
 async def setup(bot):
     await bot.add_cog(Gamba(bot, bot.guild_id))
 
 
-def convert_chance(chance: str) -> float | None:
-    float_chance = 0
-    try:
-        float_chance = float(chance)
-    except ValueError:
-        if re.compile('[0-9]+/[0-9]+').fullmatch(chance):
-            split_fraction = chance.split('/')
-            float_chance = int(split_fraction[0])/int(split_fraction[1])
-        elif re.compile('[1-9][0-9]%|[1-9]%').fullmatch(chance):
-            print(int(chance.strip('%')))
-            float_chance = int(chance.strip('%'))/100
-    if float_chance >= 1 or float_chance <= 0:
-        return None
-    return float_chance
-
-
 class Gamba(commands.Cog):
     def __init__(self, bot, guild_id):
+        self.generator_thread_handle = None
         self.bot = bot
         self.guild = discord.utils.find(lambda g: g.id == guild_id, self.bot.guilds)
+        self.generator_thread_handle: threading.Timer
         self.check_members_in_db()
         self.points_generator()
 
     async def cog_check(self, ctx):
-        if ctx.message.guild.id != self.guild.id:
+        if ctx.guild.id != self.guild.id:
             return False
         if ctx.invoked_with == 'activate':
             return True
@@ -44,253 +34,273 @@ class Gamba(commands.Cog):
             return False
         return True
 
-    @commands.command(name='activate', description='Join the gamba cult', brief='Join the gamba cult')
-    async def opt_in(self, ctx):
-        if self.bot.sql_connector.get_opt_in(ctx.author.id):
-            await ctx.send('You are already part of the gamba cult')
+    @app_commands.command(name='activate', description='Join the gamba cult')
+    @app_commands.guild_only()
+    async def opt_in(self, interaction: discord.Interaction):
+        if self.bot.sql_connector.get_opt_in(interaction.user.id):
+            await interaction.response.send_message('You are already part of the gamba cult', ephemeral=True)
             return
-        self.bot.sql_connector.opt_in(ctx.author.id)
-        await ctx.send(f'{ctx.author.display_name} joined the gamba cult')
-        await self.delete_message(ctx)
+        self.bot.sql_connector.opt_in(interaction.user.id)
+        await interaction.response.send_message(f'{interaction.user.display_name} joined the gamba cult',
+                                                ephemeral=False)
 
-    @commands.command(name='points', aliases=['p', 'pts'], description='Check how many points you have',
-                      brief='Check how many points you have')
+    @app_commands.command(name='points', description='Check how many points you have')
+    @app_commands.describe(target='The member whose points you want to check')
+    @app_commands.guild_only()
     async def print_someones_points(self,
-                                    ctx,
-                                    target: discord.Member = commands.parameter(default=lambda ctx: ctx.author,
-                                                                                description='Name of the person whose p'
-                                                                                            'oints you want to check',
-                                                                                displayed_default='You')):
-        await ctx.send(f'{target.display_name} has {self.get_points(target.id)} points')
-        await self.delete_message(ctx)
+                                    interaction: discord.Interaction,
+                                    target: discord.Member = None):
+        if not target:
+            target = interaction.user
+        await interaction.response.send_message(f'{target.display_name} has {self.get_points(target.id)} points',
+                                                ephemeral=False)
 
-    @commands.command(name='top', description='Display the richest bitches', brief='Display the richest bitches')
+    @app_commands.command(name='top', description='Display the richest bitches')
+    @app_commands.describe(count='How many people you want to display')
+    @app_commands.guild_only()
     async def print_top_scoreboard(self,
-                                   ctx,
-                                   count: int = commands.parameter(default=3,
-                                                                   description='How many people you want to display')):
+                                   interaction: discord.Interaction,
+                                   count: int = 3):
         sorted_points = self.bot.sql_connector.get_opt_in_members_sorted()
         max_display_name_len = self.get_max_display_name_length()
         top_list = '```'
         for i, (m, p, _) in enumerate(sorted_points):
             if i >= count:
                 break
-            top_list += '{:<{name_len}} {:<15}\n'.format(ctx.guild.get_member(m).display_name, p,
+            top_list += '{:<{name_len}} {:<15}\n'.format(interaction.guild.get_member(m).display_name, p,
                                                          name_len=max_display_name_len + 5)
         top_list += '```'
-        await ctx.send(top_list)
-        await self.delete_message(ctx)
+        await interaction.response.send_message(top_list,
+                                                ephemeral=False)
 
-    @commands.command(name='bottom', description='Display most addicted ones', brief='Display most addicted ones')
+    @app_commands.command(name='bottom', description='Display most addicted ones')
+    @app_commands.describe(count='How many people you want to display')
+    @app_commands.guild_only()
     async def print_bottom_scoreboard(self,
-                                      ctx,
-                                      count: int = commands.parameter(default=3,
-                                                                      description='How many people you want to display')):
+                                      interaction: discord.Interaction,
+                                      count: int = 3):
         sorted_points = self.bot.sql_connector.get_opt_in_members_sorted()
         max_display_name_len = self.get_max_display_name_length()
         top_list = '```'
         for i, (m, p, _) in enumerate(reversed(sorted_points)):
             if i >= count:
                 break
-            top_list += '{:<{name_len}} {:<15}\n'.format(ctx.guild.get_member(m).display_name, p,
+            top_list += '{:<{name_len}} {:<15}\n'.format(interaction.guild.get_member(m).display_name, p,
                                                          name_len=max_display_name_len + 5)
         top_list += '```'
-        await ctx.send(top_list)
-        await self.delete_message(ctx)
+        await interaction.response.send_message(top_list,
+                                                ephemeral=False)
 
-    @commands.command(name='coinflip', aliases=['flip', 'cf'], description='Double or nothing',
-                      brief='Double or nothing')
+    @app_commands.command(name='coinflip', description='Double or nothing')
+    @app_commands.describe(amount='How much are you willing to lose?')
+    @app_commands.guild_only()
     async def perform_coinflip(self,
-                               ctx,
-                               amount: str = commands.parameter(default=None,
-                                                                description='The amount of points you want to lose')):
-        if not amount or (not amount.isdigit() and amount.lower() != 'all'):
-            await ctx.send('Usage: $coinflip [points]/all')
-            return
+                               interaction: discord.Interaction,
+                               amount: str):
         amount_int = 0
+        user = interaction.user
         if amount.isdigit():
             amount_int = int(amount)
             if amount_int < 1:
-                await ctx.send(f'What are you even trying to do')
+                await interaction.response.send_message('What are you even trying to do?',
+                                                        ephemeral=True)
                 return
-            if not self.check_balance(ctx.author, amount_int):
-                await ctx.send('Not enough points')
-                return
-        elif amount == 'all':
-            amount_int = self.get_points(ctx.author.id)
-            if amount_int < 1:
-                await ctx.send(f'{ctx.author.display_name} was trying to all in with'
-                               f' 0 points <:kekw:966948654260838400>')
-                return
-        outcome = random.randint(0, 1)
-        self.bot.sql_connector.add_coinflip(ctx.author.id, amount_int, outcome)
-        if amount == 'all':
-            if outcome:
-                await ctx.send(f'{ctx.author.display_name} has put all their points on the line and won the coinflip'
-                               f' <:POGGERS:897872828668457002>! They doubled their points to'
-                               f' {self.get_points(ctx.author.id)}')
-            else:
-                await ctx.send(
-                    f'{ctx.author.display_name} has gone all in and lost '
-                    f'{f"every single one of their {amount_int} points" if amount_int > 1 else "their only point"} '
-                    f'<:kekw:966948654260838400>!')
-        else:
-            await ctx.send(f'{ctx.author.display_name} has {"won" if outcome else "lost"}'
-                           f' {amount_int} points in a coinflip and now has {self.get_points(ctx.author.id)} points')
-        await self.delete_message(ctx)
-
-    @commands.command(name='diceroll', aliases=['dice', 'dr'], description='Bet on dice',
-                      brief='Bet on dice')
-    async def perform_diceroll(self,
-                               ctx,
-                               amount: str = commands.parameter(default=None,
-                                                                description='The amount of points you want to lose'),
-                               *,
-                               numbers: str = commands.parameter(default=None,
-                                                                 description='Numbers on which bet is placed')):
-        digit_test = re.compile('( *[1-6]+ *)+')
-        if not amount or (not amount.isdigit() and amount.lower() != 'all') or not digit_test.fullmatch(numbers):
-            await ctx.send('Usage: $diceroll [points]/all [number(s)]')
-            return
-        amount_int = 0
-        if amount.isdigit():
-            amount_int = int(amount)
-            if amount_int < 1:
-                await ctx.send(f'What are you even trying to do')
-                return
-            if not self.check_balance(ctx.author, amount_int):
-                await ctx.send('Not enough points')
+            if not self.check_balance(user, amount_int):
+                await interaction.response.send_message('Not enough points',
+                                                        ephemeral=True)
                 return
         elif amount.lower() == 'all':
-            amount_int = self.get_points(ctx.author.id)
+            amount_int = self.get_points(user.id)
             if amount_int < 1:
-                await ctx.send(f'{ctx.author.display_name} was trying to all in with'
-                               f' 0 points <:kekw:966948654260838400>')
+                await interaction.response.send_message(f'{user.display_name} was trying to all in with'
+                               f' 0 points <:kekw:966948654260838400>',
+                                                        ephemeral=False)
                 return
+        else:
+            await interaction.response.send_message(f'Invalid amount, need to be a number or \'all\'',
+                                                    ephemeral=True)
+        outcome = random.randint(0, 1)
+        self.bot.sql_connector.add_coinflip(user.id, amount_int, outcome)
+        if amount.lower() == 'all':
+            if outcome:
+                await interaction.response.send_message(f'{user.display_name} has put all their points on'
+                                                        f' the line and won the coinflip'
+                                                        f' <:POGGERS:897872828668457002>! They doubled their points to'
+                                                        f' {self.get_points(interaction.user.id)}',
+                                                        ephemeral=False)
+            else:
+                await interaction.response.send_message(
+                    f'{user.display_name} has gone all in and lost '
+                    f'{f"every single one of their {amount_int} points" if amount_int > 1 else "their only point"} '
+                    f'<:kekw:966948654260838400>!', ephemeral=False)
+        else:
+            await interaction.response.send_message(f'{user.display_name} has {"won" if outcome else "lost"}'
+                                                    f' {amount_int} points in a coinflip and now has '
+                                                    f'{self.get_points(user.id)} points',
+                                                    ephemeral=False)
+
+    @app_commands.command(name='diceroll', description='Bet on dice')
+    @app_commands.describe(amount='How much are you willing to lose?')
+    @app_commands.guild_only()
+    async def perform_diceroll(self,
+                               interaction: discord.Interaction,
+                               amount: str,
+                               numbers: str):
+        user = interaction.user
+        digit_test = re.compile('( *[1-6]+ *)+')
+        if not digit_test.fullmatch(numbers):
+            await interaction.response.send_message('You can only provide digits 1-6 for your guess',
+                                                    ephemeral=True)
+            return
+        amount_int = 0
+        if amount.isdigit():
+            amount_int = int(amount)
+            if amount_int < 1:
+                await interaction.send(f'What are you even trying to do')
+                return
+            if not self.check_balance(user, amount_int):
+                await interaction.response.send_message('Not enough points',
+                                                        ephemeral=True)
+                return
+        elif amount.lower() == 'all':
+            amount_int = self.get_points(user.id)
+            if amount_int < 1:
+                await interaction.response.send_message(f'{user.display_name} was trying to all in with'
+                               f' 0 points <:kekw:966948654260838400>',
+                                                        ephemeral=False)
+                return
+        else:
+            await interaction.response.send_message(f'The amount need to be a number or \'all\'',
+                                                    ephemeral=True)
         # Single out all digits into a set
         bet_numbers = set([int(c) for c in numbers if c.isdigit()])
 
         if len(bet_numbers) >= 6:
-            await ctx.send(f'{ctx.author.display_name} has bet on all possible numbers <:kekw:966948654260838400>')
+            await interaction.response.send_message(f'You can\'t bet on all possible numbers '
+                                                    f'<:kekw:966948654260838400>',
+                                                    ephemeral=True)
             return
         # String representation of bet numbers
         bet_numbers_string = ', '.join(map(str, sorted(bet_numbers)))
         dice_number = random.randint(1, 6)
         outcome = 1 if dice_number in bet_numbers else 0
         win_amount = int((6 - len(bet_numbers)) / len(bet_numbers) * amount_int)
-        self.bot.sql_connector.add_diceroll(ctx.author.id, win_amount if outcome else -amount_int,
+        self.bot.sql_connector.add_diceroll(user.id, win_amount if outcome else -amount_int,
                                             outcome, dice_number, ''.join(map(str, sorted(bet_numbers))))
         if amount.lower() == 'all':
             if outcome:
-                await ctx.send(f'{ctx.author.display_name} has put all their points on {bet_numbers_string}. '
-                               f' The result was **{dice_number}**!\nThey won and raised their points to'
-                               f' {self.get_points(ctx.author.id)}')
+                await interaction.response.send_message(f'{user.display_name} has put all their points on '
+                                                        f'{bet_numbers_string}. The result was **{dice_number}**!\n'
+                                                        f'They won and raised their points to'
+                                                        f' {self.get_points(user.id)}',
+                                                        ephemeral=False)
             else:
-                await ctx.send(
-                    f'{ctx.author.display_name} has gone all in on {bet_numbers_string}. '
+                await interaction.response.send_message(
+                    f'{user.display_name} has gone all in on {bet_numbers_string}. '
                     f' The result was **{dice_number}**\n They lost '
                     f'{f"every single one of their {amount_int} points" if amount_int > 1 else "their only point"} '
-                    f'<:kekw:966948654260838400>!')
+                    f'<:kekw:966948654260838400>!',
+                    ephemeral=False)
         else:
-            await ctx.send(f'{ctx.author.display_name} has put {amount_int} points on {bet_numbers_string}. The '
-                           f'result was **{dice_number}**!\nThey '
-                           f'{f"won {win_amount}" if outcome else f"lost {amount_int}"}'
-                           f' points and now have {self.get_points(ctx.author.id)} points')
-        await self.delete_message(ctx)
+            await interaction.response.send_message(
+                f'{user.display_name} has put {amount_int} points on {bet_numbers_string}. The '
+                f'result was **{dice_number}**!\nThey '
+                f'{f"won {win_amount}" if outcome else f"lost {amount_int}"}'
+                f' points and now have {self.get_points(user.id)} points',
+                ephemeral=False)
 
-    @commands.command(name='gift', aliases=['give', 'donate'], description='Communism', brief='Communism')
+    @app_commands.command(name='gift', description='Communism')
+    @app_commands.describe(amount='How much you want to gift')
+    @app_commands.describe(target='The benefactor of your donation')
+    @app_commands.guild_only()
     async def gift_points(self,
-                          ctx,
-                          target: discord.Member = commands.parameter(default=None,
-                                                                      description='The benefactor of your donation'),
-                          amount: int = commands.parameter(default=None,
-                                                           description='The amount you want to donate')):
-        if not target:
-            raise commands.MissingRequiredArgument(commands.Parameter('target', discord.Member))
-        if not amount:
-            raise commands.MissingRequiredArgument(commands.Parameter('amount', int))
-        if amount < 1:
-            await ctx.send(f'Clown')
+                          interaction: discord.Interaction,
+                          target: discord.Member,
+                          amount: app_commands.Range[int, 1, None]):
+        user = interaction.user
+        if not self.check_balance(user, amount):
+            await interaction.response.send_message(f'You don\'t have enough points',
+                                                    ephemeral=True)
             return
-        if not self.check_balance(ctx.author, amount):
-            await ctx.send(f'You don\'t have enough points')
-            return
-        self.bot.sql_connector.add_gift(ctx.author.id, amount, target.id)
-        match ctx.invoked_with:
-            case 'gift':
-                await ctx.send(f'{ctx.author.display_name} has gifted {amount} points to {target.display_name}')
-            case 'give':
-                await ctx.send(f'{ctx.author.display_name} gave {amount} points to {target.display_name}')
-            case 'donate':
-                await ctx.send(f'{ctx.author.display_name} was charitable and donated {amount}'
-                               f' points to {target.display_name}')
+        self.bot.sql_connector.add_gift(user.id, amount, target.id)
+        await interaction.response.send_message(f'{user.display_name} has gifted {amount}'
+                                                    f' points to {target.display_name}')
 
-        await self.delete_message(ctx)
-
-    @commands.command(name='duel', description='Fight another person to try and steal points',
-                      brief='Fight another person to try and steal points')
+    @app_commands.command(name='duel', description='Fight another person to try and steal points')
+    @app_commands.describe(amount='The amount of points you want to steal')
+    @app_commands.describe(enemy='The person you want to fight')
+    @app_commands.guild_only()
     async def perform_duel(self,
-                           ctx,
-                           enemy: discord.Member = commands.parameter(description='The person you want to fight'),
-                           amount: int = commands.parameter(description='The amount of points you want to steal')):
-        if amount < 1:
-            await ctx.send('Very funny')
-            return
-        if not self.check_balance(ctx.author, amount):
-            await ctx.send('You don\'t have enough points')
+                           interaction: discord.Interaction,
+                           enemy: discord.Member,
+                           amount: app_commands.Range[int, 1, None]):
+        user = interaction.user
+        if not self.check_balance(user, amount):
+            await interaction.response.send_message('You don\'t have enough points', ephemeral=True)
             return
         if not self.check_balance(enemy, amount):
-            await ctx.send('The person you are trying to duel is too poor')
+            await interaction.response.send_message(
+                f'The person you are trying to duel is too poor, they only have {self.get_points(enemy.id)} points',
+                ephemeral=True)
             return
-        if enemy.id == ctx.author.id:
-            await ctx.send(f'{ctx.author.display_name} shot himself in the foot')
+        if enemy.id == user.id:
+            await interaction.response.send_message(f'{user.display_name} shot himself in the foot',
+                                                    ephemeral=False)
             return
         outcome = random.randint(0, 1) == 1
         if outcome:
-            await ctx.send(
-                f'{ctx.author.display_name} took {enemy.display_name} by surprise and stole {amount} points as a bounty')
+            await interaction.response.send_message(
+                f'{user.display_name} took {enemy.display_name} by surprise and stole {amount} points as a bounty',
+                ephemeral=False)
         else:
-            await ctx.send(
+            await interaction.response.send_message(
                 f'{enemy.display_name} was prepared for the attack and stole {amount}'
-                f' points off of {ctx.author.display_name}')
-        self.bot.sql_connector.add_duel(ctx.author.id, amount, outcome, enemy.id)
-        await self.delete_message(ctx)
+                f' points off of {user.display_name}')
+        self.bot.sql_connector.add_duel(user.id, amount, outcome, enemy.id)
 
-    @commands.command(name='set', description='Nothing to see here', brief='Nothing to see here')
+    @app_commands.command(name='set', description='Nothing to see here')
+    @app_commands.guild_only()
     @commands.is_owner()
     async def set_points(self,
-                         ctx,
-                         target: discord.Member = commands.parameter(description='Like I said'),
-                         amount: int = commands.parameter(description='Nothing to see here')):
-        await self.delete_message(ctx)
+                         interaction: discord.Interaction,
+                         target: discord.Member,
+                         amount: app_commands.Range[int, 0, None]):
+        pass
 
-    @commands.command(name='gamba', description='Start a betting round', brief='Start a betting round')
+    @app_commands.command(name='gamba', description='Start a betting round')
+    @app_commands.describe(description='What the gamba is about')
+    @app_commands.guild_only()
     async def start_gamba(self,
-                          ctx,
-                          *,
-                          description: str = commands.parameter(default=None,
-                                                                description='Description what the gamba is about')):
-        if not description:
-            await ctx.send('Usage: $gamba [description]')
-            return
+                          interaction: discord.Interaction,
+                          description: str):
         gamba_id = self.bot.sql_connector.add_gamba(description)
+        gamba_view = discord.ui.View(timeout=None)
+        pog = discord.utils.get(interaction.guild.emojis, name='POGGERS')
+        kekw = discord.utils.get(interaction.guild.emojis, name='kekw')
+        weird = discord.utils.get(interaction.guild.emojis, name='WeirdChamp')
+        win_button = GambaButton(pog, discord.ButtonStyle.green, f'gamba_win_{gamba_id}', self.handle_gamba_win)
+        lose_button = GambaButton(kekw, discord.ButtonStyle.red, f'gamba_lose_{gamba_id}', self.handle_gamba_loss)
+        cancel_button = GambaButton(weird, discord.ButtonStyle.grey, f'gamba_cancel_{gamba_id}', self.handle_cancel)
+        gamba_view.add_item(win_button)
+        gamba_view.add_item(lose_button)
+        gamba_view.add_item(cancel_button)
         balances = '```'
-        # TODO show only opt-in balances
-        for vc in ctx.guild.voice_channels:
+        for vc in interaction.guild.voice_channels:
             for m in vc.members:
-                balances += f'{m.display_name} has {self.get_points(m.id)} points\n'
-        gamba_message = await ctx.send(f'Gamba #{gamba_id} has been started by'
-                                       f' {ctx.author.display_name}:\n```{description}```\n')
+                if self.bot.sql_connector.get_opt_in(m.id):
+                    balances += f'{m.display_name} has {self.get_points(m.id)} points\n'
+        await interaction.response.send_message(content=f'```Gamba #{gamba_id} has been started by '
+                                                        f'{interaction.user.display_name}:\n```'
+                                                        f'{description}',
+                                                view=gamba_view,
+                                                ephemeral=False)
         if balances != '```':
-            await ctx.send(balances.strip('\n') + '```')
-        self.bot.sql_connector.set_gamba_message_id(gamba_id, gamba_message.id)
+            await interaction.channel.send(balances.strip('\n') + '```', delete_after=60)
+        original = await interaction.original_response()
+        original_message = await original.fetch()
+        self.bot.sql_connector.set_gamba_message_id(gamba_id, original_message.id)
         self.bot.sql_connector.add_gamba_option('win', gamba_id, 0, 2)
         self.bot.sql_connector.add_gamba_option('loss', gamba_id, 1, 2)
-        await gamba_message.add_reaction('🟢')
-        await gamba_message.add_reaction('🔴')
-        await gamba_message.add_reaction('↩️')
-
-        await self.delete_message(ctx)
 
     # @commands.command(name='customgamba', aliases=['cgamba'], description='Start a betting round with custom win chance', brief='Start a betting round with win chance')
     # async def start_custom_gamba(self,
@@ -324,92 +334,91 @@ class Gamba(commands.Cog):
     #
     #     await self.delete_message(ctx)
 
-    @commands.command(name='bet', description='Place your bet for the ongoing gamba',
-                      brief='Place your bet for the ongoing gamba')
+    @app_commands.command(name='bet', description='Place your bet for the ongoing gamba')
+    @app_commands.describe(amount='The amount of points you want to bet')
+    @app_commands.describe(pred='w for win, l for loss')
+    @app_commands.describe(gamba_nr='Specify the gamba number in case of multiple gambas simultaneously')
+    @app_commands.guild_only()
     async def bet_gamba(self,
-                        ctx,
-                        amount: str = commands.parameter(default=None,
-                                                         description='The amount of points you want to bet'),
-                        pred: str = commands.parameter(default=None,
-                                                       description='w for win, l for loss'),
-                        gamba_nr: int = commands.parameter(default=None,
-                                                           description='Specify the gamba number in case of multiple'
-                                                                       ' gambas simultaneously')):
-        if (not amount or not pred or (not amount.isdigit() and amount.lower != 'all')
-                or not pred[0].lower() in ['w', 'l']):
-            await ctx.send('Usage: $bet [amount]/all [win/loss]')
-            return
+                        interaction: discord.Interaction,
+                        amount: str,
+                        pred: Literal['w', 'l'],
+                        gamba_nr: int = None):
+        user = interaction.user
         active_gamba_ids = self.bot.sql_connector.get_active_gamba_ids()
         if not active_gamba_ids:
-            await ctx.send('No gambas are currently active')
+            await interaction.response.send_message('No gambas are currently active',
+                                                    ephemeral=True)
             return
         if len(active_gamba_ids) == 1:
             gamba_id = active_gamba_ids[0]
         elif not gamba_nr:
-            await ctx.send(f'Multiple gambas active, please specify on which gamba you want to bet')
+            await interaction.response.send_message(f'Multiple gambas active, please specify on'
+                                                    f' which gamba you want to bet',
+                                                    ephemeral=True)
             return
         else:
             gamba_id = gamba_nr
         amount_int = 0
         if amount.isdigit():
             amount_int = int(amount)
-            if not self.check_balance(ctx.author, amount_int):
-                await ctx.send(f'You don\'t have enough points')
+            if not self.check_balance(user, amount_int):
+                await interaction.response.send_message(f'You don\'t have enough points',
+                                                        ephemeral=True)
                 return
-        if amount.lower == 'all':
-            amount_int = self.get_points(ctx.author.id)
+        if amount.lower() == 'all':
+            amount_int = self.get_points(user.id)
         if amount_int < 1:
-            await ctx.send(f'Cmon Bruh, can\'t bet with 0 points...')
-        self.bot.sql_connector.set_bet(ctx.author.id, amount_int, gamba_id, 0 if pred[0].lower == 'w' else 1)
-        await ctx.send(f'{ctx.author.display_name} has bet {amount_int} on {"win" if pred[0].lower == "w" else "lose"}')
-        await self.delete_message(ctx)
-
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
-        if payload.user_id == self.bot.application_id:
+            await interaction.response.send_message(f'Cmon Bruh, can\'t bet with 0 points...',
+                                                    ephemeral=True)
             return
-        await self.handle_gamba_reactions(payload)
+        self.bot.sql_connector.set_bet(user.id, amount_int, gamba_id, 0 if pred == 'w' else 1)
+        await interaction.response.send_message(f'{user.display_name} has bet {amount_int} on '
+                                                f'{"win" if pred == "w" else "lose"}',
+                                                ephemeral=False)
 
-    async def handle_gamba_reactions(self, payload):
-        gamba = self.bot.sql_connector.get_gamba_from_message_id(payload.message_id)
-        if not gamba:
-            return
-        gamba_id, is_open = gamba
-        if not is_open:
-            return
-        gamba_channel = discord.utils.find(lambda c: c.id == payload.channel_id, self.guild.text_channels)
-        if payload.emoji.name == '🟢':
-            self.bot.sql_connector.close_gamba(gamba_id, True)
-            await self.handle_outcome(True, gamba_id, gamba_channel)
-        if payload.emoji.name == '🔴':
-            self.bot.sql_connector.close_gamba(gamba_id, False)
-            await self.handle_outcome(False, gamba_id, gamba_channel)
-        if payload.emoji.name == '↩️':
-            self.bot.sql_connector.close_gamba(gamba_id, None)
-            await self.handle_cancel(gamba_id, gamba_channel)
-        gamba_message = await gamba_channel.fetch_message(payload.message_id)
-        await gamba_message.clear_reactions()
-
-    async def handle_outcome(self, win, gamba_id, gamba_channel):
-        final_message = f'Gamba is over. The result is **{"WIN" if win else "LOSS"}**.\n```'
+    async def handle_gamba_win(self, interaction: discord.Interaction):
+        final_message = f'Gamba is over. The result is **WIN**.\n```'
+        gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
-            await gamba_channel.send(final_message + 'No bets were placed```')
+            await interaction.channel.send(final_message + 'No bets were placed```')
+            await interaction.message.edit(view=None)
             return
         for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
             amount = -amount
             member = await self.guild.fetch_member(member_id)
-            # Very bad code, if win (outcome == True) and option nummer = 0, or loss and option number = 1, then trigger
-            # Basically checks if you bet correctly (the option_number != outcome part)
-            self.bot.sql_connector.payout_bet(member_id, option_number != win, bet_set_id, amount * payout_factor)
-            final_message += self.get_gamba_outcome_message(member, amount, option_number != win)
-        await gamba_channel.send(final_message + '```')
+            self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
+            final_message += self.get_gamba_outcome_message(member, amount, not option_number)
+        self.bot.sql_connector.close_gamba(gamba_id, 1)
+        await interaction.channel.send(final_message + '```')
+        await interaction.message.edit(view=None)
 
-    async def handle_cancel(self, gamba_id, gamba_channel):
+    async def handle_gamba_loss(self, interaction: discord.Interaction):
+        final_message = f'Gamba is over. The result is **LOSS**.\n```'
+        gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
+        gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
+        if not gamba_bets:
+            await interaction.channel.send(final_message + 'No bets were placed```')
+            await interaction.message.edit(view=None)
+            return
+        for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
+            amount = -amount
+            member = await self.guild.fetch_member(member_id)
+            self.bot.sql_connector.payout_bet(member_id, option_number, bet_set_id, amount * payout_factor)
+            final_message += self.get_gamba_outcome_message(member, amount, option_number)
+        self.bot.sql_connector.close_gamba(gamba_id, 0)
+        await interaction.channel.send(final_message + '```')
+        await interaction.message.edit(view=None)
+
+    async def handle_cancel(self, interaction: discord.Interaction):
+        gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         for bet_set_id, amount, member_id, _, _ in gamba_bets:
-            self.bot.sql_connector.payout_bet(member_id, True, bet_set_id, -amount)
-        await gamba_channel.send('Gamba has been canceled and points have been refunded')
+            self.bot.sql_connector.payout_bet(member_id, None, bet_set_id, -amount)
+        self.bot.sql_connector.close_gamba(gamba_id, None)
+        await interaction.channel.send('Gamba has been canceled and points have been refunded')
+        await interaction.message.edit(view=None)
 
     def points_generator(self):
         print(f'Generator updated at {time.asctime(time.localtime())}')
@@ -425,7 +434,8 @@ class Gamba(commands.Cog):
                     generated_points += 2
             if generated_points > 0:
                 self.bot.sql_connector.update_generator(member.id, generated_points)
-        threading.Timer(300, self.points_generator).start()
+        self.generator_thread_handle = threading.Timer(300, self.points_generator)
+        self.generator_thread_handle.start()
 
     def get_max_display_name_length(self):
         max_len = 0
@@ -489,6 +499,8 @@ class Gamba(commands.Cog):
         print('Loaded gamba cog')
 
     async def cog_unload(self):
+        if self.generator_thread_handle:
+            self.generator_thread_handle.cancel()
         print('Unloaded gamba cog')
 
 
