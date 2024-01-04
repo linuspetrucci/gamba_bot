@@ -380,7 +380,7 @@ class Gamba(commands.Cog):
             amount = -amount
             member = await self.guild.fetch_member(member_id)
             self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
-            final_message += self.get_gamba_outcome_message(member, amount, not option_number)
+            final_message += self.get_gamba_outcome_message(member, amount * payout_factor, not option_number)
         self.bot.sql_connector.close_gamba(gamba_id, 1)
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
