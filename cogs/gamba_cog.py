@@ -481,7 +481,7 @@ class Gamba(commands.Cog):
                 self.bot.sql_connector.add_member(member.id)
                 print(f'Added member {member.display_name} to the database')
 
-    def get_gamba_outcome_message(self, member: discord.Member, payout_factor: float, amount: int, win: bool):
+    def get_gamba_outcome_message(self, member: discord.Member, amount: int, payout_factor: float, win: bool):
         win_lose = 'won' if win else 'lost'
         change_amount = amount * payout_factor if win else amount
         return (f'{member.display_name} has {win_lose} {int(change_amount)} point(s)'
