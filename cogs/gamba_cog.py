@@ -380,7 +380,7 @@ class Gamba(commands.Cog):
             amount = -amount
             member = await self.guild.fetch_member(member_id)
             self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
-            final_message += self.get_gamba_outcome_message(member, amount * payout_factor, not option_number)
+            final_message += self.get_gamba_outcome_message(member, amount, payout_factor, not option_number)
         self.bot.sql_connector.close_gamba(gamba_id, 1)
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
@@ -397,7 +397,7 @@ class Gamba(commands.Cog):
             amount = -amount
             member = await self.guild.fetch_member(member_id)
             self.bot.sql_connector.payout_bet(member_id, option_number, bet_set_id, amount * payout_factor)
-            final_message += self.get_gamba_outcome_message(member, amount, option_number)
+            final_message += self.get_gamba_outcome_message(member, amount, payout_factor, option_number)
         self.bot.sql_connector.close_gamba(gamba_id, 0)
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
@@ -481,9 +481,10 @@ class Gamba(commands.Cog):
                 self.bot.sql_connector.add_member(member.id)
                 print(f'Added member {member.display_name} to the database')
 
-    def get_gamba_outcome_message(self, member: discord.Member, amount: int, win: bool):
+    def get_gamba_outcome_message(self, member: discord.Member, payout_factor: float, amount: int, win: bool):
         win_lose = 'won' if win else 'lost'
-        return (f'{member.display_name} has {win_lose} {int(amount)} point(s)'
+        change_amount = amount * payout_factor if win else amount
+        return (f'{member.display_name} has {win_lose} {int(change_amount)} point(s)'
                 f' and now has {self.get_points(member.id)} points\n')
 
     async def cog_load(self):
