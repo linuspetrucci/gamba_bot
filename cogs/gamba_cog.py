@@ -481,9 +481,9 @@ class Gamba(commands.Cog):
                 self.bot.sql_connector.add_member(member.id)
                 print(f'Added member {member.display_name} to the database')
 
-    def get_gamba_outcome_message(self, member, amount, win):
+    def get_gamba_outcome_message(self, member: discord.Member, amount: int, win: bool):
         win_lose = 'won' if win else 'lost'
-        return (f'{member.display_name} has {win_lose} {amount} point(s)'
+        return (f'{member.display_name} has {win_lose} {int(amount)} point(s)'
                 f' and now has {self.get_points(member.id)} points\n')
 
     async def cog_load(self):

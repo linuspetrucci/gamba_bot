@@ -12,6 +12,8 @@ Bet_set(pc_id, gamba_option_id, gamba_id)
 
 Bet_payout(pc_id, outcome, bet_set_id)
 
+Diceroll(pc_id, outcome, rolled_value, predicted_numbers)
+
 Gamba_option(gamba_option_id, gamba_option_text, gamba_id, option_number, win_chance)
 
 Gamba(gamba_id, gamba_text, is_open, outcome, gamba_message_id)
