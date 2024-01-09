@@ -280,7 +280,9 @@ class Gamba(commands.Cog):
                          interaction: discord.Interaction,
                          target: discord.Member,
                          amount: app_commands.Range[int, 0, None]):
-        pass
+        self.bot.sql_connector.add_set_points(target.id, amount)
+        await interaction.response.send_message(f'{target.display_name}\'s points are now set to {amount}',
+                                                ephemeral=True)
 
     @app_commands.command(name='gamba', description='Start a betting round')
     @app_commands.describe(description='What the gamba is about')

@@ -69,6 +69,11 @@ CREATE TABLE IF NOT EXISTS Diceroll(
     predicted_numbers VARCHAR(6),
     CONSTRAINT dr_reference FOREIGN KEY(pc_id) REFERENCES Point_change(pc_id));
 
+CREATE TABLE IF NOT EXISTS Set_points(
+    pc_id INTEGER PRIMARY KEY,
+    target_points INTEGER,
+    CONSTRAINT set_reference_pc FOREIGN KEY(pc_id) REFERENCES Point_change(pc_id));
+
 CREATE TRIGGER IF NOT EXISTS pc_updater AFTER INSERT ON Point_change FOR EACH ROW
 	UPDATE Member SET total_points = total_points + NEW.amount WHERE Member.member_id = NEW.member_id;
 

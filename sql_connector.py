@@ -191,6 +191,18 @@ class SQLConnector:
         cursor.execute(sql, values)
         self.connection.commit()
 
+    def add_set_points(self, member_id: int, target_amount: int):
+        points_before = self.get_member_points(member_id)
+        sql = '''INSERT INTO Point_change(pc_timestamp, amount, member_id) VALUES (NOW(), %s, %s)'''
+        values = (target_amount - points_before, member_id)
+        cursor = self.connection.cursor()
+        cursor.execute(sql, values)
+        sql = '''INSERT INTO Set_points(pc_id, target_amount) VALUES (%s, %s)'''
+        values = (cursor.lastrowid, target_amount)
+        cursor.execute(sql, values)
+        self.connection.commit()
+
+
     def get_connection(self):
         try:
             connection = mysql.connector.connect(**self.CONFIG)
