@@ -485,7 +485,7 @@ class Gamba(commands.Cog):
 
     def get_gamba_outcome_message(self, member: discord.Member, amount: int, payout_factor: float, win: bool):
         win_lose = 'won' if win else 'lost'
-        change_amount = amount * payout_factor if win else amount
+        change_amount = amount * (payout_factor - 1) if win else amount
         return (f'{member.display_name} has {win_lose} {int(change_amount)} point(s)'
                 f' and now has {self.get_points(member.id)} points\n')
 
