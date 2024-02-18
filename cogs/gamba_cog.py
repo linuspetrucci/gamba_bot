@@ -376,13 +376,12 @@ class Gamba(commands.Cog):
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
             await interaction.channel.send(final_message + 'No bets were placed```')
-            await interaction.message.edit(view=None)
-            return
-        for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
-            amount = -amount
-            member = await self.guild.fetch_member(member_id)
-            self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
-            final_message += self.get_gamba_outcome_message(member, amount, payout_factor, not option_number)
+        else:
+            for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
+                amount = -amount
+                member = await self.guild.fetch_member(member_id)
+                self.bot.sql_connector.payout_bet(member_id, not option_number, bet_set_id, amount * payout_factor)
+                final_message += self.get_gamba_outcome_message(member, amount, payout_factor, not option_number)
         self.bot.sql_connector.close_gamba(gamba_id, 1)
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
@@ -393,13 +392,12 @@ class Gamba(commands.Cog):
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
             await interaction.channel.send(final_message + 'No bets were placed```')
-            await interaction.message.edit(view=None)
-            return
-        for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
-            amount = -amount
-            member = await self.guild.fetch_member(member_id)
-            self.bot.sql_connector.payout_bet(member_id, option_number, bet_set_id, amount * payout_factor)
-            final_message += self.get_gamba_outcome_message(member, amount, payout_factor, option_number)
+        else:
+            for bet_set_id, amount, member_id, option_number, payout_factor in gamba_bets:
+                amount = -amount
+                member = await self.guild.fetch_member(member_id)
+                self.bot.sql_connector.payout_bet(member_id, option_number, bet_set_id, amount * payout_factor)
+                final_message += self.get_gamba_outcome_message(member, amount, payout_factor, option_number)
         self.bot.sql_connector.close_gamba(gamba_id, 0)
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
@@ -407,8 +405,9 @@ class Gamba(commands.Cog):
     async def handle_cancel(self, interaction: discord.Interaction):
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
-        for bet_set_id, amount, member_id, _, _ in gamba_bets:
-            self.bot.sql_connector.payout_bet(member_id, None, bet_set_id, -amount)
+        if gamba_bets:
+            for bet_set_id, amount, member_id, _, _ in gamba_bets:
+                self.bot.sql_connector.payout_bet(member_id, None, bet_set_id, amount)
         self.bot.sql_connector.close_gamba(gamba_id, None)
         await interaction.channel.send('Gamba has been canceled and points have been refunded')
         await interaction.message.edit(view=None)

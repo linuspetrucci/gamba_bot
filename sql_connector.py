@@ -174,7 +174,7 @@ class SQLConnector:
     def payout_bet(self, member_id: int, outcome: bool, bet_set_id: int, amount: int):
         cursor = self.connection.cursor()
         sql = '''INSERT INTO Point_change(pc_timestamp, amount, member_id) VALUES (NOW(), %s, %s)'''
-        values = (amount if outcome else 0, member_id)
+        values = (amount if outcome or outcome is None else 0, member_id)
         cursor.execute(sql, values)
         sql = '''INSERT INTO Bet_payout(pc_id, outcome, bet_set_id) VALUES (%s, %s, %s)'''
         values = (cursor.lastrowid, outcome, bet_set_id)
@@ -202,6 +202,15 @@ class SQLConnector:
         cursor.execute(sql, values)
         self.connection.commit()
 
+    def get_coinflip_data(self, member_id: int):
+        """Returns a list with tuples (timestamp, amount, outcome)"""
+        query = '''SELECT Point_change.pc_timestamp, Point_change.amount, Coinflip.outcome 
+        FROM Coinflip INNER JOIN Point_change ON Coinflip.pc_id = Point_change.pc_id 
+        WHERE Point_change.member_id = %s'''
+        values = (member_id,)
+        cursor = self.connection.cursor()
+        cursor.execute(query, values)
+        return cursor.fetchall()
 
     def get_connection(self):
         try:
