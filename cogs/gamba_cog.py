@@ -440,7 +440,7 @@ class Gamba(commands.Cog):
         return self.get_points(member.id) >= amount
 
     def get_points(self, member_id):
-        return self.bot.sql_connector.get_member_points(member_id)
+        return self.bot.sql_connector.get_member_points_by_id(member_id)
 
     @perform_duel.error
     async def duel_error(self, ctx, error):
