@@ -21,10 +21,10 @@ def convert_chance(chance: str) -> float | None:
     except ValueError:
         if re.compile('[0-9]+/[0-9]+').fullmatch(chance):
             split_fraction = chance.split('/')
-            float_chance = int(split_fraction[0])/int(split_fraction[1])
+            float_chance = int(split_fraction[0]) / int(split_fraction[1])
         elif re.compile('[1-9][0-9]%|[1-9]%').fullmatch(chance):
             print(int(chance.strip('%')))
-            float_chance = int(chance.strip('%'))/100
+            float_chance = int(chance.strip('%')) / 100
     if float_chance >= 1 or float_chance <= 0:
         return None
     return float_chance
@@ -128,7 +128,7 @@ class Gamba(commands.Cog):
             amount_int = self.get_points(user.id)
             if amount_int < 1:
                 await interaction.response.send_message(f'{user.display_name} was trying to all in with'
-                               f' 0 points <:kekw:966948654260838400>',
+                                                        f' 0 points <:kekw:966948654260838400>',
                                                         ephemeral=False)
                 return
         else:
@@ -181,7 +181,7 @@ class Gamba(commands.Cog):
             amount_int = self.get_points(user.id)
             if amount_int < 1:
                 await interaction.response.send_message(f'{user.display_name} was trying to all in with'
-                               f' 0 points <:kekw:966948654260838400>',
+                                                        f' 0 points <:kekw:966948654260838400>',
                                                         ephemeral=False)
                 return
         else:
@@ -239,7 +239,32 @@ class Gamba(commands.Cog):
             return
         self.bot.sql_connector.add_gift(user.id, amount, target.id)
         await interaction.response.send_message(f'{user.display_name} has gifted {amount}'
-                                                    f' points to {target.display_name}')
+                                                f' points to {target.display_name}')
+
+    @app_commands.command(name='charity', description='Eat the rich')
+    @app_commands.describe(amount='How much you want to throw out the window')
+    @app_commands.guild_only()
+    async def gift_points_to_all(self,
+                          interaction: discord.Interaction,
+                          amount: app_commands.Range[int, 1, None]):
+        user = interaction.user
+        if not self.check_balance(user, amount):
+            await interaction.response.send_message(f'You don\'t have enough points.',
+                                                    ephemeral=True)
+            return
+        member_ids = [member_id for (member_id, _, _) in self.bot.sql_connector.get_opt_in_members_sorted()]
+        if not amount >= len(member_ids):
+            await interaction.response.send_message(f'The amount specified is not enough to give everyone at'
+                                                    f' least 1 point',
+                                                    ephemeral=True)
+            return
+        gift_size = amount // len(member_ids)
+        for member_id in member_ids:
+            self.bot.sql_connector.add_gift(user.id, gift_size, member_id)
+        await interaction.response.send_message(f'{user.display_name} has gifted {gift_size}'
+                                                f' points to everyone and lost {gift_size * len(member_ids)} points'
+                                                f' in the process',
+                                                ephemeral=False)
 
     @app_commands.command(name='duel', description='Fight another person to try and steal points')
     @app_commands.describe(amount='The amount of points you want to steal')
@@ -495,6 +520,3 @@ class Gamba(commands.Cog):
         if self.generator_thread_handle:
             self.generator_thread_handle.cancel()
         print('Unloaded gamba cog')
-
-
-            

@@ -51,7 +51,9 @@ class SQLConnector:
         return bool(cursor.fetchone()[0])
 
     def get_opt_in_members_sorted(self) -> list[tuple[int, int, int]]:
-        """Returns a list of all members where the opt_in status is True, sorted by points in descending order."""
+        """Returns a list of all members where the opt_in status is True, sorted by points in descending order.
+        The tuples are (member_id, total_points, generated_points).
+        """
         query = '''SELECT member_id, total_points, generated_points 
         FROM Member WHERE opt_in = TRUE ORDER BY total_points DESC'''
         cursor = self.connection.cursor()
