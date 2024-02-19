@@ -163,7 +163,7 @@ class SQLConnector:
         that Point_change. This is then repeated with the member and receiver switched, creating another
         Point_change and Gift where the amount is negated.
         """
-        self.add_gift(member_id, amount, receiver_id)
+        self._add_gift(member_id, amount, receiver_id)
 
     def _add_gift(self, member_id: int, amount: int, receiver_id: int, repeat: bool = True) -> None:
         sql = '''INSERT INTO Point_change(pc_timestamp, amount, member_id) VALUES (NOW(), %s, %s)'''
