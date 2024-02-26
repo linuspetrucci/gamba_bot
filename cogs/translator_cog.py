@@ -16,16 +16,10 @@ class Translator(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        print('works')
-        print(payload.emoji)
-        print(payload.user_id)
-        if payload.user_id == 698211309556334592 or payload.user_id == 249513831582138368 and payload.emoji == '❓':
+        if payload.user_id == 698211309556334592 or payload.user_id == 249513831582138368 and payload.emoji.name == '❓':
             channel = self.bot.get_channel(payload.channel_id)
-            print(channel.name)
             message = await channel.fetch_message(payload.message_id)
-            print(message.content)
             result = self.translator.translate_text(message.content, target_lang='EN-US', source_lang='DE')
-            print(result)
             await message.reply(result.text)
             await message.clear_reaction('❓')
 
