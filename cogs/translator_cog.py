@@ -9,7 +9,7 @@ async def setup(bot):
 
 class Translator(commands.Cog):
     def __init__(self, bot: commands.Bot):
-        with open('../deepl_key.txt') as f:
+        with open('deepl_key.txt') as f:
             auth_key = f.readline()
         self.translator = deepl.Translator(auth_key)
         self.bot = bot
