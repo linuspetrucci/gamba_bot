@@ -15,15 +15,11 @@ class Translator(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.author.id != self.bot.user.id:
-            await message.add_reaction('❓')
-
-    @commands.Cog.listener()
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
         if user.id == 698211309556334592 or user.id == 249513831582138368 and reaction.emoji == '❓':
             result = self.translator.translate_text(reaction.message.content, target_lang='EN-US')
             await reaction.message.reply(result.text)
+            await reaction.remove(user)
 
     async def cog_load(self):
         print('Loaded translator cog')
