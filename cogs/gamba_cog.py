@@ -245,8 +245,8 @@ class Gamba(commands.Cog):
     @app_commands.describe(amount='How much you want to throw out the window')
     @app_commands.guild_only()
     async def gift_points_to_all(self,
-                          interaction: discord.Interaction,
-                          amount: app_commands.Range[int, 1, None]):
+                                 interaction: discord.Interaction,
+                                 amount: app_commands.Range[int, 1, None]):
         user = interaction.user
         if not self.check_balance(user, amount):
             await interaction.response.send_message(f'You don\'t have enough points.',
@@ -328,7 +328,7 @@ class Gamba(commands.Cog):
         weird = discord.utils.get(interaction.guild.emojis, name='WeirdChamp')
         win_button = GambaButton(pog, discord.ButtonStyle.green, f'gamba_win_{gamba_id}', self.handle_gamba_win)
         lose_button = GambaButton(kekw, discord.ButtonStyle.red, f'gamba_lose_{gamba_id}', self.handle_gamba_loss)
-        cancel_button = GambaButton(weird, discord.ButtonStyle.grey, f'gamba_cancel_{gamba_id}', self.handle_cancel)
+        cancel_button = GambaButton(weird, discord.ButtonStyle.grey, f'gamba_cancel_{gamba_id}', self.handle_gamba_cancel)
         gamba_view.add_item(win_button)
         gamba_view.add_item(lose_button)
         gamba_view.add_item(cancel_button)
@@ -395,9 +395,28 @@ class Gamba(commands.Cog):
                                                 f'{"win" if pred == "w" else "lose"}',
                                                 ephemeral=False)
 
+    @app_commands.command(name='close', description='Override to close bet in case of broken buttons')
+    @app_commands.describe(gamba_nr='Specify the gamba number of the bet to be closed')
+    @app_commands.describe(outcome='w for win, l for loss, c for cancel')
+    @app_commands.guild_only()
+    async def close_gamba(self,
+                          interaction: discord.Interaction,
+                          gamba_nr: int,
+                          outcome: Literal['w', 'l', 'c']):
+        match outcome:
+            case 'w':
+                await self._handle_gamba_win(interaction, gamba_nr)
+            case 'l':
+                await self._handle_gamba_win(interaction, gamba_nr)
+            case 'c':
+                await self._handle_gamba_win(interaction, gamba_nr)
+
     async def handle_gamba_win(self, interaction: discord.Interaction):
-        final_message = f'Gamba is over. The result is **WIN**.\n```'
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
+        await self._handle_gamba_win(interaction, gamba_id)
+
+    async def _handle_gamba_win(self, interaction: discord.Interaction, gamba_id: int):
+        final_message = f'Gamba is over. The result is **WIN**.\n```'
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
             await interaction.channel.send(final_message + 'No bets were placed```')
@@ -412,8 +431,11 @@ class Gamba(commands.Cog):
         await interaction.message.edit(view=None)
 
     async def handle_gamba_loss(self, interaction: discord.Interaction):
-        final_message = f'Gamba is over. The result is **LOSS**.\n```'
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
+        await self._handle_gamba_loss(interaction, gamba_id)
+
+    async def _handle_gamba_loss(self, interaction: discord.Interaction, gamba_id: int):
+        final_message = f'Gamba is over. The result is **LOSS**.\n```'
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if not gamba_bets:
             await interaction.channel.send(final_message + 'No bets were placed```')
@@ -427,8 +449,11 @@ class Gamba(commands.Cog):
         await interaction.channel.send(final_message + '```')
         await interaction.message.edit(view=None)
 
-    async def handle_cancel(self, interaction: discord.Interaction):
+    async def handle_gamba_cancel(self, interaction: discord.Interaction):
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
+        await self._handle_gamba_cancel(interaction, gamba_id)
+
+    async def _handle_gamba_cancel(self, interaction: discord.Interaction, gamba_id: int):
         gamba_bets = self.bot.sql_connector.get_bets_from_gamba_id(gamba_id)
         if gamba_bets:
             for bet_set_id, amount, member_id, _, _ in gamba_bets:
