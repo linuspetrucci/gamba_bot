@@ -407,9 +407,9 @@ class Gamba(commands.Cog):
             case 'w':
                 await self._handle_gamba_win(interaction, gamba_nr)
             case 'l':
-                await self._handle_gamba_win(interaction, gamba_nr)
+                await self._handle_gamba_loss(interaction, gamba_nr)
             case 'c':
-                await self._handle_gamba_win(interaction, gamba_nr)
+                await self._handle_gamba_cancel(interaction, gamba_nr)
 
     async def handle_gamba_win(self, interaction: discord.Interaction):
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
