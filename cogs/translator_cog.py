@@ -17,7 +17,7 @@ class Translator(commands.Cog):
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
         if user.id == 698211309556334592 or user.id == 249513831582138368 and reaction.emoji == '❓':
-            result = self.translator.translate_text(reaction.message.content, target_lang='EN-US')
+            result = self.translator.translate_text(reaction.message.content, target_lang='EN-US', source_lang='DE')
             await reaction.message.reply(result.text)
             await reaction.remove(user)
 
