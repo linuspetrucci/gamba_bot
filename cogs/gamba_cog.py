@@ -428,7 +428,8 @@ class Gamba(commands.Cog):
                 final_message += self.get_gamba_outcome_message(member, amount, payout_factor, not option_number)
         self.bot.sql_connector.close_gamba(gamba_id, 1)
         await interaction.channel.send(final_message + '```')
-        await interaction.message.edit(view=None)
+        if interaction.message:
+            await interaction.message.edit(view=None)
 
     async def handle_gamba_loss(self, interaction: discord.Interaction):
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
@@ -447,7 +448,8 @@ class Gamba(commands.Cog):
                 final_message += self.get_gamba_outcome_message(member, amount, payout_factor, option_number)
         self.bot.sql_connector.close_gamba(gamba_id, 0)
         await interaction.channel.send(final_message + '```')
-        await interaction.message.edit(view=None)
+        if interaction.message:
+            await interaction.message.edit(view=None)
 
     async def handle_gamba_cancel(self, interaction: discord.Interaction):
         gamba_id = self.bot.sql_connector.get_gamba_id_from_message_id(interaction.message.id)
@@ -460,7 +462,8 @@ class Gamba(commands.Cog):
                 self.bot.sql_connector.payout_bet(member_id, None, bet_set_id, amount)
         self.bot.sql_connector.close_gamba(gamba_id, None)
         await interaction.channel.send('Gamba has been canceled and points have been refunded')
-        await interaction.message.edit(view=None)
+        if interaction.message:
+            await interaction.message.edit(view=None)
 
     def points_generator(self):
         print(f'Generator updated at {time.asctime(time.localtime())}')
