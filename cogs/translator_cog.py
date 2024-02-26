@@ -16,6 +16,9 @@ class Translator(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        print('works')
+        print(payload.emoji)
+        print(payload.user_id)
         if payload.user_id == 698211309556334592 or payload.user_id == 249513831582138368 and payload.emoji == '❓':
             channel = self.bot.get_channel(payload.channel_id)
             message = await channel.fetch_message(payload.message_id)
