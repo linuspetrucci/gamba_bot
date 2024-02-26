@@ -2,6 +2,8 @@ discord_token.txt
 sql_credentials.json
 userdb*
 entity_relation_diagram.drawio
-testbot.py
+testing/testbot.py
+deepl_key.txt
 
 .idea
+testing
