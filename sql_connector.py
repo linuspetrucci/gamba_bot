@@ -12,7 +12,7 @@ class SQLConnector:
 
     def add_member(self, member_id: int) -> None:
         """Inserts a new member into the database. The member starts with zero points and is not oped in."""
-        sql = '''INSERT INTO Member (member_id, total_points, opt_in) VALUES (%s, 0, 0, FALSE)'''
+        sql = '''INSERT INTO Member (member_id, total_points, opt_in) VALUES (%s, 0, FALSE)'''
         values = (member_id,)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
