@@ -465,7 +465,7 @@ class Gamba(commands.Cog):
         if interaction.message:
             await interaction.message.edit(view=None)
 
-    def points_generator(self):
+    async def points_generator(self):
         print(f'Generator updated at {time.asctime(time.localtime())}')
         db_member_ids = [m_id for m_id, m_pts in self.bot.sql_connector.get_opt_in_members_sorted()]
         async for member in self.guild.fetch_members():
