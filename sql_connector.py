@@ -12,7 +12,7 @@ class SQLConnector:
 
     def add_member(self, member_id: int) -> None:
         """Inserts a new member into the database. The member starts with zero points and is not oped in."""
-        sql = '''INSERT INTO Member (member_id, total_points, generated_points, opt_in) VALUES (%s, 0, 0, FALSE)'''
+        sql = '''INSERT INTO Member (member_id, total_points, opt_in) VALUES (%s, 0, 0, FALSE)'''
         values = (member_id,)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
@@ -54,7 +54,7 @@ class SQLConnector:
         """Returns a list of all members where the opt_in status is True, sorted by points in descending order.
         The tuples are (member_id, total_points, generated_points).
         """
-        query = '''SELECT member_id, total_points, generated_points 
+        query = '''SELECT member_id, total_points 
         FROM Member WHERE opt_in = TRUE ORDER BY total_points DESC'''
         cursor = self.connection.cursor()
         cursor.execute(query)
@@ -246,7 +246,7 @@ class SQLConnector:
         values = (target_amount - points_before, member_id)
         cursor = self.connection.cursor()
         cursor.execute(sql, values)
-        sql = '''INSERT INTO Set_points(pc_id, target_amount) VALUES (%s, %s)'''
+        sql = '''INSERT INTO Set_points(pc_id, target_points) VALUES (%s, %s)'''
         values = (cursor.lastrowid, target_amount)
         cursor.execute(sql, values)
         self.connection.commit()
