@@ -528,6 +528,14 @@ class Gamba(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             print(f'Unknown command was issued: {ctx.message.content}')
 
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        try:
+            self.bot.sql_connector.add_member(member.id)
+            print(f'{member.display_name} is added to the DB')
+        except:
+            print(f'{member.display_name} is already in the DB')
+
     def check_members_in_db(self):
         print('Checking members in db')
         member_ids = self.bot.sql_connector.get_all_member_ids()
