@@ -84,8 +84,5 @@ CREATE TABLE IF NOT EXISTS Set_points(
 CREATE TRIGGER IF NOT EXISTS pc_updater AFTER INSERT ON Point_change FOR EACH ROW
 	UPDATE Member SET total_points = total_points + NEW.amount WHERE Member.member_id = NEW.member_id;
 
-CREATE TRIGGER IF NOT EXISTS generator_updater BEFORE UPDATE ON Generator FOR EACH ROW
-    BEGIN
-        UPDATE Member SET Member.total_points = Member.total_points + NEW.points
-        WHERE Member.member_id = NEW.member_id;
-    end;
+CREATE TRIGGER IF NOT EXISTS generator_updater AFTER INSERT ON Generator FOR EACH ROW
+	UPDATE Member SET Member.total_points = Member.total_points + NEW.points WHERE Member.member_id = NEW.member_id;

@@ -66,6 +66,7 @@ class SQLConnector:
         """
         cursor = self.connection.cursor()
         sql = '''UPDATE Member SET generated_points = generated_points + %s WHERE member_id = %s'''
+        sql = '''INSERT INTO Generator VALUES (%s, %s, %s)'''
         values = (amount, member_id)
         cursor.execute(sql, values)
         self.connection.commit()
