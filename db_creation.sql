@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS Generator(
     points INTEGER,
     member_id BIGINT,
     CONSTRAINT generator_reference_member FOREIGN KEY(member_id) REFERENCES Member(member_id),
-    CONSTRAINT generator_primary PRIMARY KEY(timestamp, points)
+    CONSTRAINT generator_primary PRIMARY KEY(timestamp, member_id)
 );
     
 CREATE TABLE IF NOT EXISTS Gamba(
