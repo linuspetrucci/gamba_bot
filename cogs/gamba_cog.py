@@ -79,7 +79,7 @@ class Gamba(commands.Cog):
         sorted_points = self.bot.sql_connector.get_opt_in_members_sorted()
         max_display_name_len = self.get_max_display_name_length()
         top_list = '```'
-        for i, (m, p, _) in enumerate(sorted_points):
+        for i, (m, p) in enumerate(sorted_points):
             if i >= count:
                 break
             top_list += '{:<{name_len}} {:<15}\n'.format(interaction.guild.get_member(m).display_name, p,
