@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 import random
 import threading
@@ -32,12 +34,11 @@ def convert_chance(chance: str) -> float | None:
 
 class Gamba(commands.Cog):
     def __init__(self, bot, guild_id):
-        self.generator_thread_handle = None
         self.bot = bot
         self.guild = discord.utils.find(lambda g: g.id == guild_id, self.bot.guilds)
-        self.generator_thread_handle: threading.Timer
         self.check_members_in_db()
-        self.points_generator()
+        self._loop = asyncio.get_event_loop()
+        self.generator_task = self._loop.create_task(self.points_generator())
 
     async def cog_check(self, ctx):
         if ctx.guild.id != self.guild.id:
@@ -466,22 +467,22 @@ class Gamba(commands.Cog):
             await interaction.message.edit(view=None)
 
     async def points_generator(self):
-        print(f'Generator updated at {time.asctime(time.localtime())}')
-        db_member_ids = [m_id for m_id, m_pts in self.bot.sql_connector.get_opt_in_members_sorted()]
-        async for member in self.guild.fetch_members():
-            if member.id not in db_member_ids:
-                continue
-            generated_points = 0
-            if member.status != discord.Status.offline:
-                generated_points += 1
-            if member.voice:
-                generated_points += 2
-                if member.voice.self_stream:
+        while True:
+            print(f'Generator updated at {time.asctime(time.localtime())}')
+            db_member_ids = [m_id for m_id, m_pts in self.bot.sql_connector.get_opt_in_members_sorted()]
+            async for member in self.guild.fetch_members():
+                if member.id not in db_member_ids:
+                    continue
+                generated_points = 0
+                if member.status != discord.Status.offline:
+                    generated_points += 1
+                if member.voice:
                     generated_points += 2
-            if generated_points > 0:
-                self.bot.sql_connector.update_generator(member.id, generated_points)
-        self.generator_thread_handle = threading.Timer(300, self.points_generator)
-        self.generator_thread_handle.start()
+                    if member.voice.self_stream:
+                        generated_points += 2
+                if generated_points > 0:
+                    self.bot.sql_connector.update_generator(member.id, generated_points)
+            await asyncio.sleep(300)
 
     def get_max_display_name_length(self):
         max_len = 0
@@ -554,6 +555,5 @@ class Gamba(commands.Cog):
         print('Loaded gamba cog')
 
     async def cog_unload(self):
-        if self.generator_thread_handle:
-            self.generator_thread_handle.cancel()
+        self.generator_task.cancel()
         print('Unloaded gamba cog')
