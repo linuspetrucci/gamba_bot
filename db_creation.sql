@@ -1,8 +1,15 @@
 CREATE TABLE IF NOT EXISTS Member(
     member_id BIGINT PRIMARY KEY,
     total_points INTEGER CHECK(total_points >= 0),
-    generated_points INTEGER CHECK(generated_points >= 0),
     opt_in BOOLEAN);
+
+CREATE TABLE IF NOT EXISTS Generator(
+    timestamp DATETIME,
+    points INTEGER,
+    member_id BIGINT,
+    CONSTRAINT generator_reference_member FOREIGN KEY(member_id) REFERENCES Member(member_id),
+    CONSTRAINT generator_primary PRIMARY KEY(timestamp, points)
+);
     
 CREATE TABLE IF NOT EXISTS Gamba(
 	gamba_id INTEGER PRIMARY KEY AUTO_INCREMENT,
@@ -77,5 +84,8 @@ CREATE TABLE IF NOT EXISTS Set_points(
 CREATE TRIGGER IF NOT EXISTS pc_updater AFTER INSERT ON Point_change FOR EACH ROW
 	UPDATE Member SET total_points = total_points + NEW.amount WHERE Member.member_id = NEW.member_id;
 
-CREATE TRIGGER IF NOT EXISTS generator_updater BEFORE UPDATE ON Member FOR EACH ROW
-	SET NEW.total_points = NEW.total_points + NEW.generated_points - OLD.generated_points;
+CREATE TRIGGER IF NOT EXISTS generator_updater BEFORE UPDATE ON Generator FOR EACH ROW
+    BEGIN
+        UPDATE Member SET Member.total_points = Member.total_points + NEW.points
+        WHERE Member.member_id = NEW.member_id;
+    end;
