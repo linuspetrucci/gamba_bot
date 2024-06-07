@@ -467,9 +467,10 @@ class Gamba(commands.Cog):
 
     def points_generator(self):
         print(f'Generator updated at {time.asctime(time.localtime())}')
-        db_members = self.bot.sql_connector.get_opt_in_members_sorted()
-        for db_member in db_members:
-            member = self.guild.get_member(db_member[0])
+        db_member_ids = [m_id for m_id, m_pts in self.bot.sql_connector.get_opt_in_members_sorted()]
+        async for member in self.guild.fetch_members():
+            if member.id not in db_member_ids:
+                continue
             generated_points = 0
             if member.status != discord.Status.offline:
                 generated_points += 1
