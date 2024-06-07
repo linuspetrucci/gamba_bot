@@ -97,7 +97,7 @@ class Gamba(commands.Cog):
         sorted_points = self.bot.sql_connector.get_opt_in_members_sorted()
         max_display_name_len = self.get_max_display_name_length()
         top_list = '```'
-        for i, (m, p, _) in enumerate(reversed(sorted_points)):
+        for i, (m, p) in enumerate(reversed(sorted_points)):
             if i >= count:
                 break
             top_list += '{:<{name_len}} {:<15}\n'.format(interaction.guild.get_member(m).display_name, p,
@@ -252,7 +252,7 @@ class Gamba(commands.Cog):
             await interaction.response.send_message(f'You don\'t have enough points.',
                                                     ephemeral=True)
             return
-        member_ids = [member_id for (member_id, _, _) in self.bot.sql_connector.get_opt_in_members_sorted()]
+        member_ids = [member_id for (member_id, _) in self.bot.sql_connector.get_opt_in_members_sorted()]
         if not amount >= len(member_ids):
             await interaction.response.send_message(f'The amount specified is not enough to give everyone at'
                                                     f' least 1 point',
