@@ -266,7 +266,7 @@ class SQLConnector:
 
     def get_connection(self):
         if not self.connection.is_connected():
-            self._get_connection()
+            return self._get_connection()
         return self.connection
 
     def _get_connection(self):
